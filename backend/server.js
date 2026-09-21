@@ -11,59 +11,66 @@ const { errorHandler, notFound } = require('./middlewares/errorHandler');
 
 const app = express();
 
-// ===============================
-// CORS
-// ===============================
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://tokobatik13.vercel.app'
-  ],
-  credentials: true
-}));
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://toko-batik-two.vercel.app',
+  'https://tokobatik13.vercel.app'
+];
 
-// ===============================
-// Middleware
-// ===============================
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Request tanpa origin, misalnya Postman/Insomnia
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Origin tidak diizinkan oleh CORS: ${origin}`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ===============================
-// Folder statis uploads
-// ===============================
 app.use(
   '/uploads',
   express.static(path.join(__dirname, 'uploads'))
 );
 
-// ===============================
-// Route utama
-// ===============================
 app.get('/', (req, res) => {
   res.json({
-    message: 'API Toko Pengrajin Batik berjalan dengan baik 🚀'
+    success: true,
+    message: 'API Toko Batik berjalan dengan baik 🚀'
   });
 });
 
-// ===============================
-// Routing API
-// ===============================
+// ROUTES
 app.use('/api/auth', authRoutes);
 app.use('/api/produk', produkRoutes);
 app.use('/api/transaksi', transaksiRoutes);
 app.use('/api/artikel', artikelRoutes);
 
+// 404
 app.use(notFound);
+
+// ERROR HANDLER
 app.use(errorHandler);
 
-// Export Express app untuk Vercel
-module.exports = app;
+const PORT = process.env.PORT || 5000;
 
-// Jalankan server hanya saat lokal
 if (require.main === module) {
-  const PORT = process.env.PORT || 5000;
-
   app.listen(PORT, () => {
     console.log(`✅ Server berjalan di http://localhost:${PORT}`);
   });
 }
+
+module.exports = app;
