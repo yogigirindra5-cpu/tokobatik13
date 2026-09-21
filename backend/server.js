@@ -11,22 +11,17 @@ const { errorHandler, notFound } = require('./middlewares/errorHandler');
 
 const app = express();
 
-/* =========================
-   CORS
-========================= */
-
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://toko-batik-two.vercel.app',
-  'https://tokobatik13.vercel.app'
+  'https://tokobatik13.vercel.app',
+  'https://tokobatik13-git-dev-yogigirindra13.vercel.app'
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Izinkan request tanpa origin
-      // contoh: Postman / Insomnia
+      // Request tanpa Origin, misalnya Postman/Insomnia
       if (!origin) {
         return callback(null, true);
       }
@@ -60,25 +55,13 @@ app.use(
   })
 );
 
-/* =========================
-   MIDDLEWARE
-========================= */
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-/* =========================
-   UPLOADS
-========================= */
 
 app.use(
   '/uploads',
   express.static(path.join(__dirname, 'uploads'))
 );
-
-/* =========================
-   ROOT
-========================= */
 
 app.get('/', (req, res) => {
   res.json({
@@ -87,33 +70,13 @@ app.get('/', (req, res) => {
   });
 });
 
-/* =========================
-   API ROUTES
-========================= */
-
 app.use('/api/auth', authRoutes);
-
 app.use('/api/produk', produkRoutes);
-
 app.use('/api/transaksi', transaksiRoutes);
-
 app.use('/api/artikel', artikelRoutes);
 
-/* =========================
-   404
-========================= */
-
 app.use(notFound);
-
-/* =========================
-   ERROR HANDLER
-========================= */
-
 app.use(errorHandler);
-
-/* =========================
-   SERVER
-========================= */
 
 const PORT = process.env.PORT || 5000;
 
