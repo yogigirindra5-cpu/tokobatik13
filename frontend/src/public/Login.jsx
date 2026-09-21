@@ -18,6 +18,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!credential.trim() || !passwd) {
       setError('Email/username dan password wajib diisi.');
       return;
@@ -25,9 +26,15 @@ export default function Login() {
 
     setLoading(true);
     setError('');
+
     try {
       const role = await login(credential.trim(), passwd);
-      const tujuan = redirect || location.state?.from || (role === 'admin' ? '/admin' : '/');
+
+      const tujuan =
+        redirect ||
+        location.state?.from ||
+        (role === 'admin' ? '/admin' : '/');
+
       navigate(tujuan, { replace: true });
     } catch (err) {
       setError(err.message || 'Email/username atau password salah.');
@@ -39,41 +46,76 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title">Masuk ke Akun</h1>
+
+        <h1 className="auth-title">
+          Masuk ke Akun
+        </h1>
+
         <p className="auth-desc">
           Belum punya akun?{' '}
-          <Link to={redirect ? `/daftar?redirect=${encodeURIComponent(redirect)}` : '/daftar'}>
+          <Link
+            to={
+              redirect
+                ? `/daftar?redirect=${encodeURIComponent(redirect)}`
+                : '/daftar'
+            }
+          >
             Daftar di sini
           </Link>
         </p>
 
         {location.state?.message && (
-          <div className="auth-alert auth-alert-success">{location.state.message}</div>
+          <div className="auth-alert auth-alert-success">
+            {location.state.message}
+          </div>
         )}
-        {error && <div className="auth-alert auth-alert-error">{error}</div>}
+
+        {error && (
+          <div className="auth-alert auth-alert-error">
+            {error}
+          </div>
+        )}
 
         <form className="auth-form" onSubmit={handleSubmit}>
+
+          {/* EMAIL / USERNAME */}
           <div className="form-field">
-            <label className="form-label" htmlFor="credential">Email atau Username</label>
+            <label
+              className="form-label"
+              htmlFor="credential"
+            >
+              Email atau Username
+            </label>
+
             <input
               type="text"
               id="credential"
               value={credential}
               onChange={(e) => setCredential(e.target.value)}
+              autoComplete="username"
               required
             />
           </div>
 
+          {/* PASSWORD */}
           <div className="form-field">
-            <label className="form-label" htmlFor="passwd">Password</label>
+            <label
+              className="form-label"
+              htmlFor="passwd"
+            >
+              Password
+            </label>
+
             <div className="auth-password-field">
               <input
                 type={showPasswd ? 'text' : 'password'}
                 id="passwd"
                 value={passwd}
                 onChange={(e) => setPasswd(e.target.value)}
+                autoComplete="current-password"
                 required
               />
+
               <button
                 type="button"
                 className="auth-toggle-eye"
@@ -84,12 +126,24 @@ export default function Login() {
             </div>
           </div>
 
-          <button type="submit" className="btn btn-accent w-100" disabled={loading}>
+          {/* TOMBOL LOGIN */}
+          <button
+            type="submit"
+            className="btn btn-accent w-100"
+            disabled={loading}
+          >
             {loading ? 'MEMPROSES...' : 'MASUK'}
           </button>
+
         </form>
 
-        <Link to="/" className="auth-back-link">&larr; Kembali ke Beranda</Link>
+        <Link
+          to="/"
+          className="auth-back-link"
+        >
+          &larr; Kembali ke Beranda
+        </Link>
+
       </div>
     </div>
   );
