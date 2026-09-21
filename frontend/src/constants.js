@@ -34,6 +34,7 @@ export const KATEGORI_PRODUK = [
 ];
 
 export const METODE_BAYAR = ['Bank Transfer', 'E-Wallet'];
+
 export const PAYMENT_DETAILS = {
   'Bank Transfer': {
     provider: 'BCA',
@@ -46,6 +47,18 @@ export const PAYMENT_DETAILS = {
     holder: 'Girindra',
   },
 };
+
 export const SHIPPING = [];
-export const STATUS_PROSES = ['Tertunda', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan'];
-export const STATUS_BAYAR = ['Belum', 'Dibayar'];
+
+export const STATUS_PROSES = [
+  'Tertunda',
+  'Diproses',
+  'Dikirim',
+  'Selesai',
+  'Dibatalkan'
+];
+
+export const STATUS_BAYAR = [
+  'Belum',
+  'Dibayar'
+];

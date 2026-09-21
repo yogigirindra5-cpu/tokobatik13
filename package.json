@@ -1,0 +1,10 @@
+{
+  "name": "toko-batik",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "backend:dev": "npm --prefix backend run dev"
+  }
+}
