@@ -1,4 +1,4 @@
-const KategoriModel = require("../models/KategoriModel");
+const KategoriModel = require("../models/kategoriModel");
 
 // ======================================================
 // GET SEMUA KATEGORI
