@@ -1,36 +1,99 @@
-const express = require('express');
+const express = require("express");
+
 const router = express.Router();
+
+const authController = require("../controllers/authController");
+
 const {
-  register, login, getProfile, updateProfile, getAllUsers,
-  createUserAdmin, updateUserAdmin, deleteUserAdmin
-} = require('../controllers/authController');
-const { verifyToken, verifyRole } = require('../middlewares/authMiddleware');
-const upload = require('../config/multer');
+  verifyToken,
+  verifyRole,
+} = require("../middlewares/authMiddleware");
 
-console.log('--- Cek authController ---');
-console.log('register:', typeof register);
-console.log('login:', typeof login);
-console.log('getProfile:', typeof getProfile);
-console.log('getAllUsers:', typeof getAllUsers);
-console.log('createUserAdmin:', typeof createUserAdmin);
-console.log('updateUserAdmin:', typeof updateUserAdmin);
-console.log('deleteUserAdmin:', typeof deleteUserAdmin);
+const upload = require("../config/multer");
 
-console.log('--- Cek authMiddleware ---');
-console.log('verifyToken:', typeof verifyToken);
-console.log('verifyRole:', typeof verifyRole);
+console.log("=== CEK AUTH ROUTES ===");
+console.log("register:", typeof authController.register);
+console.log("login:", typeof authController.login);
+console.log("getProfile:", typeof authController.getProfile);
+console.log("updateProfile:", typeof authController.updateProfile);
+console.log("getAllUsers:", typeof authController.getAllUsers);
+console.log("createUserAdmin:", typeof authController.createUserAdmin);
+console.log("updateUserAdmin:", typeof authController.updateUserAdmin);
+console.log("deleteUserAdmin:", typeof authController.deleteUserAdmin);
 
-console.log('--- Cek multer ---');
-console.log('upload:', typeof upload);
-console.log('upload.single:', typeof upload?.single);
+console.log("verifyToken:", typeof verifyToken);
+console.log("verifyRole:", typeof verifyRole);
 
-router.post('/register', upload.single('foto'), register);
-router.post('/login', login);
-router.get('/profile', verifyToken, getProfile);
-router.put('/profile', verifyToken, updateProfile);
-router.get('/users', verifyToken, verifyRole('admin'), getAllUsers);
-router.post('/users', verifyToken, verifyRole('admin'), createUserAdmin);
-router.put('/users/:id', verifyToken, verifyRole('admin'), updateUserAdmin);
-router.delete('/users/:id', verifyToken, verifyRole('admin'), deleteUserAdmin);
+console.log("upload:", typeof upload);
+console.log(
+  "upload.single:",
+  typeof upload?.single
+);
+
+// ======================================================
+// PUBLIC
+// ======================================================
+
+router.post(
+  "/register",
+  upload.single("foto"),
+  authController.register
+);
+
+router.post(
+  "/login",
+  authController.login
+);
+
+// ======================================================
+// PROFILE
+// ======================================================
+
+router.get(
+  "/profile",
+  verifyToken,
+  authController.getProfile
+);
+
+router.put(
+  "/profile",
+  verifyToken,
+  upload.single("foto"),
+  authController.updateProfile
+);
+
+// ======================================================
+// ADMIN USERS
+// ======================================================
+
+router.get(
+  "/users",
+  verifyToken,
+  verifyRole("admin"),
+  authController.getAllUsers
+);
+
+router.post(
+  "/users",
+  verifyToken,
+  verifyRole("admin"),
+  upload.single("foto"),
+  authController.createUserAdmin
+);
+
+router.put(
+  "/users/:id",
+  verifyToken,
+  verifyRole("admin"),
+  upload.single("foto"),
+  authController.updateUserAdmin
+);
+
+router.delete(
+  "/users/:id",
+  verifyToken,
+  verifyRole("admin"),
+  authController.deleteUserAdmin
+);
 
 module.exports = router;

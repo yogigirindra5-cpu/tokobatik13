@@ -1,8 +1,13 @@
-// src/pages/ListArtikel.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
 import { API_BASE_URL } from "../constants.js";
-import { mediaUrl, formatTanggal, onImgError } from "../utils.js";
+
+import {
+  mediaUrl,
+  formatTanggal,
+  onImgError,
+} from "../utils.js";
 
 export default function ListArtikel() {
   const [artikel, setArtikel] = useState([]);
@@ -10,62 +15,174 @@ export default function ListArtikel() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/artikel`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Gagal memuat artikel");
-        return res.json();
-      })
-      .then(setArtikel)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    loadArtikel();
   }, []);
 
+  async function loadArtikel() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(
+        `${API_BASE_URL}/artikel`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            "Gagal mengambil artikel"
+        );
+      }
+
+      const hasil = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.artikel)
+          ? data.artikel
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+
+      setArtikel(hasil);
+    } catch (err) {
+      console.error(
+        "LOAD ARTIKEL ERROR:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Gagal mengambil artikel"
+      );
+
+      setArtikel([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container py-5 text-center">
+        <div
+          className="spinner-border"
+          role="status"
+        >
+          <span className="visually-hidden">
+            Loading...
+          </span>
+        </div>
+
+        <p className="text-muted mt-3">
+          Memuat artikel...
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="artikel-page">
-      {/* ===== Hero ===== */}
-      <section className="artikel-hero">
-        <div className="container text-center">
-          <span className="katalog-pill">Cerita Batik</span>
-          <h1 className="katalog-title">
-            Kisah di Balik <em>Setiap Helai</em>
-          </h1>
-          <p className="katalog-desc mx-auto">
-            Telusuri cerita pengrajin, filosofi motif, dan perjalanan warisan batik Nusantara
-            yang kami rangkum untuk kamu.
+    <div className="container py-5">
+
+      <div className="text-center mb-5">
+        <h1 className="fw-bold">
+          Artikel Batik
+        </h1>
+
+        <p className="text-muted">
+          Informasi dan cerita seputar batik Indonesia
+        </p>
+      </div>
+
+      {error && (
+        <div className="alert alert-danger text-center">
+          {error}
+
+          <br />
+
+          <button
+            className="btn btn-sm btn-danger mt-3"
+            onClick={loadArtikel}
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
+
+      {!error && artikel.length === 0 && (
+        <div className="text-center py-5">
+          <h5>
+            Belum ada artikel
+          </h5>
+
+          <p className="text-muted">
+            Artikel belum tersedia.
           </p>
         </div>
-      </section>
+      )}
 
-      {/* ===== Daftar artikel ===== */}
-      <section className="container artikel-hasil">
-        {loading && <p className="loading-row">Memuat artikel...</p>}
-        {error && <p className="loading-row">Gagal memuat artikel.</p>}
+      {!error && artikel.length > 0 && (
+        <div className="row g-4">
 
-        {!loading && !error && artikel.length === 0 && (
-          <div className="empty-state">
-            <h3>Belum ada artikel</h3>
-          </div>
-        )}
+          {artikel.map((item) => (
+            <div
+              className="col-12 col-md-6 col-lg-4"
+              key={item.id}
+            >
+              <div className="card h-100 border-0 shadow-sm">
 
-        {!loading && !error && artikel.length > 0 && (
-          <div className="row g-4">
-            {artikel.map((a) => (
-              <div key={a.id} className="col-12 col-sm-6 col-lg-4">
-                <Link to={`/artikel/${a.id}`} className="card article-card h-100 text-decoration-none">
-                  <div className="article-thumb">
-                    <img src={mediaUrl(a.gambar)} alt={a.judul} onError={onImgError} className="card-img-top" />
+                <img
+                  src={mediaUrl(item.gambar)}
+                  alt={
+                    item.judul ||
+                    "Artikel Batik"
+                  }
+                  onError={onImgError}
+                  className="card-img-top"
+                  style={{
+                    height: "220px",
+                    objectFit: "cover",
+                  }}
+                />
+
+                <div className="card-body d-flex flex-column">
+
+                  <h5 className="card-title fw-bold">
+                    {item.judul ||
+                      "Tanpa Judul"}
+                  </h5>
+
+                  <small className="text-muted mb-2">
+                    {formatTanggal(
+                      item.created_at
+                    )}
+                  </small>
+
+                  <p className="card-text text-muted">
+                    {item.ringkasan ||
+                      "Tidak ada ringkasan."}
+                  </p>
+
+                  <div className="mt-auto">
+
+                    <Link
+                      to={`/artikel/${item.id}`}
+                      className="btn btn-dark"
+                    >
+                      Baca Selengkapnya
+                    </Link>
+
                   </div>
-                  <div className="card-body">
-                    <span className="article-date">{formatTanggal(a.created_at)}</span>
-                    <h3 className="h6 mb-2">{a.judul}</h3>
-                    <p className="text-muted small mb-0">{a.ringkasan}</p>
-                  </div>
-                </Link>
+
+                </div>
+
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            </div>
+          ))}
+
+        </div>
+      )}
+
     </div>
   );
 }

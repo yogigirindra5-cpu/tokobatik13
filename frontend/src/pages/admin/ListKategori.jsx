@@ -1,253 +1,463 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../utils.js";
 
-const KOSONG = { nama_kategori: "" };
-
 export default function ListKategori() {
-  const [data, setData] = useState([]);
+  const [kategori, setKategori] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState(KOSONG);
-  const [editId, setEditId] = useState(null);
-  const [simpanLoading, setSimpanLoading] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [namaKategori, setNamaKategori] =
+    useState("");
 
-  const [hapusTarget, setHapusTarget] = useState(null);
-  const [cari, setCari] = useState("");
+  const [editingId, setEditingId] =
+    useState(null);
 
-  const muatData = () => {
-    setLoading(true);
-    setError("");
-    apiFetch("/kategori")
-      .then(setData)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+  const [editingNama, setEditingNama] =
+    useState("");
+
+  // ======================================================
+  // AMBIL DATA KATEGORI
+  // ======================================================
+
+  const loadKategori = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const data = await apiFetch(
+        "/kategori"
+      );
+
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.kategori)
+          ? data.kategori
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+
+      setKategori(list);
+    } catch (error) {
+      console.error(
+        "GET KATEGORI ERROR:",
+        error
+      );
+
+      setError(
+        error?.message ||
+          "Gagal mengambil data kategori"
+      );
+
+      setKategori([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    muatData();
+    loadKategori();
   }, []);
 
-  const bukaTambah = () => {
-    setEditId(null);
-    setForm(KOSONG);
-    setFormError("");
-  };
+  // ======================================================
+  // TAMBAH KATEGORI
+  // ======================================================
 
-  const bukaEdit = (item) => {
-    setEditId(item.id_kategori);
-    setForm({ nama_kategori: item.nama_kategori });
-    setFormError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleSubmit = async (e) => {
+  const handleTambah = async (e) => {
     e.preventDefault();
-    const nama = form.nama_kategori.trim();
+
+    const nama = namaKategori.trim();
 
     if (!nama) {
-      setFormError("Nama kategori tidak boleh kosong.");
+      alert("Nama kategori wajib diisi");
       return;
     }
 
-    const duplikat = data.some(
-      (k) =>
-        k.nama_kategori.toLowerCase() === nama.toLowerCase() &&
-        k.id_kategori !== editId
+    try {
+      await apiFetch("/kategori", {
+        method: "POST",
+        body: JSON.stringify({
+          nama_kategori: nama,
+        }),
+      });
+
+      setNamaKategori("");
+
+      await loadKategori();
+
+      alert("Kategori berhasil ditambahkan");
+    } catch (error) {
+      console.error(
+        "CREATE KATEGORI ERROR:",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "Gagal menambahkan kategori"
+      );
+    }
+  };
+
+  // ======================================================
+  // MULAI EDIT
+  // ======================================================
+
+  const handleEdit = (item) => {
+    setEditingId(item.id_kategori);
+    setEditingNama(
+      item.nama_kategori || ""
     );
-    if (duplikat) {
-      setFormError("Kategori dengan nama ini sudah ada.");
+  };
+
+  // ======================================================
+  // BATAL EDIT
+  // ======================================================
+
+  const handleBatalEdit = () => {
+    setEditingId(null);
+    setEditingNama("");
+  };
+
+  // ======================================================
+  // SIMPAN EDIT
+  // ======================================================
+
+  const handleUpdate = async (id) => {
+    const nama = editingNama.trim();
+
+    if (!nama) {
+      alert("Nama kategori wajib diisi");
       return;
     }
 
-    setSimpanLoading(true);
-    setFormError("");
-
     try {
-      if (editId) {
-        const updated = await apiFetch(`/kategori/${editId}`, {
+      await apiFetch(
+        `/kategori/${id}`,
+        {
           method: "PUT",
-          body: JSON.stringify({ nama_kategori: nama }),
-        });
-        setData((prev) =>
-          prev.map((k) => (k.id_kategori === editId ? { ...k, ...updated } : k))
-        );
-      } else {
-        const created = await apiFetch("/kategori", {
-          method: "POST",
-          body: JSON.stringify({ nama_kategori: nama }),
-        });
-        setData((prev) => [...prev, created]);
-      }
-      bukaTambah();
-    } catch (err) {
-      setFormError(err.message);
-    } finally {
-      setSimpanLoading(false);
+          body: JSON.stringify({
+            nama_kategori: nama,
+          }),
+        }
+      );
+
+      handleBatalEdit();
+
+      await loadKategori();
+
+      alert("Kategori berhasil diperbarui");
+    } catch (error) {
+      console.error(
+        "UPDATE KATEGORI ERROR:",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "Gagal memperbarui kategori"
+      );
     }
   };
 
-  const konfirmasiHapus = async () => {
-    if (!hapusTarget) return;
+  // ======================================================
+  // HAPUS KATEGORI
+  // ======================================================
+
+  const handleDelete = async (id) => {
+    const yakin = window.confirm(
+      "Yakin ingin menghapus kategori ini?"
+    );
+
+    if (!yakin) {
+      return;
+    }
+
     try {
-      await apiFetch(`/kategori/${hapusTarget.id_kategori}`, { method: "DELETE" });
-      setData((prev) => prev.filter((k) => k.id_kategori !== hapusTarget.id_kategori));
-      if (editId === hapusTarget.id_kategori) bukaTambah();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setHapusTarget(null);
+      await apiFetch(
+        `/kategori/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      await loadKategori();
+
+      alert("Kategori berhasil dihapus");
+    } catch (error) {
+      console.error(
+        "DELETE KATEGORI ERROR:",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "Gagal menghapus kategori"
+      );
     }
   };
 
-  const hasil = data.filter((k) =>
-    k.nama_kategori.toLowerCase().includes(cari.trim().toLowerCase())
-  );
+  // ======================================================
+  // LOADING
+  // ======================================================
+
+  if (loading) {
+    return (
+      <div className="container-fluid py-4">
+        <div className="text-center py-5">
+          <div
+            className="spinner-border"
+            role="status"
+          >
+            <span className="visually-hidden">
+              Loading...
+            </span>
+          </div>
+
+          <p className="mt-3">
+            Memuat data kategori...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ======================================================
+  // RENDER
+  // ======================================================
 
   return (
-    <div className="admin-page">
-      <div className="admin-head">
+    <div className="container-fluid py-4">
+
+      {/* ==================================================
+          HEADER
+      ================================================== */}
+
+      <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h1 className="admin-title">Kategori Produk</h1>
-          <p className="text-muted mb-0">Kelola daftar kategori yang tersedia di katalog.</p>
+          <h2 className="fw-bold mb-1">
+            Data Kategori
+          </h2>
+
+          <p className="text-muted mb-0">
+            Kelola kategori produk batik.
+          </p>
         </div>
       </div>
 
-      <div className="row g-4">
-        {/* ---- Form tambah/edit ---- */}
-        <div className="col-12 col-lg-4">
-          <div className="admin-card">
-            <h2 className="h6 fw-bold mb-3">
-              {editId ? "Edit Kategori" : "Tambah Kategori"}
-            </h2>
+      {/* ==================================================
+          ERROR
+      ================================================== */}
 
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label className="form-label">Nama Kategori</label>
+      {error && (
+        <div
+          className="alert alert-danger"
+          role="alert"
+        >
+          {error}
+        </div>
+      )}
+
+      {/* ==================================================
+          TAMBAH KATEGORI
+      ================================================== */}
+
+      <div className="card shadow-sm mb-4">
+        <div className="card-body">
+
+          <h5 className="fw-bold mb-3">
+            Tambah Kategori
+          </h5>
+
+          <form
+            onSubmit={handleTambah}
+          >
+            <div className="row g-2">
+
+              <div className="col-md-9">
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Contoh: Kemeja Batik"
-                  value={form.nama_kategori}
-                  onChange={(e) => setForm({ nama_kategori: e.target.value })}
-                  disabled={simpanLoading}
-                  autoFocus
+                  placeholder="Nama kategori"
+                  value={namaKategori}
+                  onChange={(e) =>
+                    setNamaKategori(
+                      e.target.value
+                    )
+                  }
                 />
               </div>
 
-              {formError && <p className="text-danger small mb-3">{formError}</p>}
-
-              <div className="d-flex gap-2">
-                <button type="submit" className="btn btn-accent flex-grow-1" disabled={simpanLoading}>
-                  {simpanLoading ? "Menyimpan..." : editId ? "Simpan Perubahan" : "Tambah Kategori"}
+              <div className="col-md-3">
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100"
+                >
+                  Tambah Kategori
                 </button>
-                {editId && (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={bukaTambah}
-                    disabled={simpanLoading}
-                  >
-                    Batal
-                  </button>
-                )}
               </div>
-            </form>
-          </div>
-        </div>
 
-        {/* ---- Daftar kategori ---- */}
-        <div className="col-12 col-lg-8">
-          <div className="admin-card">
-            <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-              <h2 className="h6 fw-bold mb-0">Daftar Kategori ({data.length})</h2>
-              <input
-                type="text"
-                className="form-control form-control-sm"
-                style={{ maxWidth: 220 }}
-                placeholder="Cari kategori..."
-                value={cari}
-                onChange={(e) => setCari(e.target.value)}
-              />
             </div>
+          </form>
 
-            {loading && <p className="text-muted text-center py-4">Memuat kategori...</p>}
-            {error && <p className="text-danger text-center py-4">{error}</p>}
-
-            {!loading && !error && (
-              hasil.length ? (
-                <div className="table-responsive">
-                  <table className="table admin-table align-middle">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 60 }}>No</th>
-                        <th>Nama Kategori</th>
-                        <th className="admin-action-heading" style={{ width: 140 }}>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {hasil.map((k, i) => (
-                        <tr key={k.id_kategori}>
-                          <td>{i + 1}</td>
-                          <td>{k.nama_kategori}</td>
-                          <td className="admin-action-cell">
-                            <div className="admin-action-buttons">
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-icon"
-                                onClick={() => bukaEdit(k)}
-                                title="Edit kategori"
-                                aria-label={`Edit kategori ${k.nama_kategori}`}
-                              >
-                                <i className="bi bi-pencil-square" aria-hidden="true"></i>
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-icon btn-icon-danger"
-                                onClick={() => setHapusTarget(k)}
-                                title="Hapus kategori"
-                                aria-label={`Hapus kategori ${k.nama_kategori}`}
-                              >
-                                <i className="bi bi-trash3" aria-hidden="true"></i>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-muted text-center py-4">
-                  {cari ? "Kategori tidak ditemukan." : "Belum ada kategori."}
-                </p>
-              )
-            )}
-          </div>
         </div>
       </div>
 
-      {/* ---- Modal konfirmasi hapus ---- */}
-      {hapusTarget && (
-        <div className="admin-modal-backdrop" onClick={() => setHapusTarget(null)}>
-          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="h6 fw-bold mb-2">Hapus Kategori?</h3>
-            <p className="text-muted mb-4">
-              Yakin ingin menghapus kategori <strong>{hapusTarget.nama_kategori}</strong>? Produk
-              yang masih memakai kategori ini sebaiknya dipindahkan dulu.
-            </p>
-            <div className="d-flex justify-content-end gap-2">
-              <button type="button" className="btn btn-outline-secondary" onClick={() => setHapusTarget(null)}>
-                Batal
-              </button>
-              <button type="button" className="btn btn-danger" onClick={konfirmasiHapus}>
-                Ya, Hapus
-              </button>
-            </div>
+      {/* ==================================================
+          TABEL
+      ================================================== */}
+
+      <div className="card shadow-sm">
+        <div className="card-body">
+
+          <div className="table-responsive">
+            <table className="table table-bordered table-hover align-middle mb-0">
+
+              <thead className="table-dark">
+                <tr>
+                  <th
+                    style={{
+                      width: "80px",
+                    }}
+                  >
+                    No
+                  </th>
+
+                  <th>
+                    Nama Kategori
+                  </th>
+
+                  <th
+                    style={{
+                      width: "250px",
+                    }}
+                  >
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {kategori.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="3"
+                      className="text-center py-4 text-muted"
+                    >
+                      Belum ada kategori.
+                    </td>
+                  </tr>
+                ) : (
+                  kategori.map(
+                    (item, index) => {
+
+                      const id =
+                        item.id_kategori;
+
+                      const isEditing =
+                        editingId === id;
+
+                      return (
+                        <tr key={id}>
+
+                          <td>
+                            {index + 1}
+                          </td>
+
+                          <td>
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={
+                                  editingNama
+                                }
+                                onChange={(e) =>
+                                  setEditingNama(
+                                    e.target.value
+                                  )
+                                }
+                                autoFocus
+                              />
+                            ) : (
+                              item.nama_kategori
+                            )}
+                          </td>
+
+                          <td>
+
+                            {isEditing ? (
+                              <div className="d-flex gap-2">
+
+                                <button
+                                  type="button"
+                                  className="btn btn-success btn-sm"
+                                  onClick={() =>
+                                    handleUpdate(
+                                      id
+                                    )
+                                  }
+                                >
+                                  Simpan
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={
+                                    handleBatalEdit
+                                  }
+                                >
+                                  Batal
+                                </button>
+
+                              </div>
+                            ) : (
+                              <div className="d-flex gap-2">
+
+                                <button
+                                  type="button"
+                                  className="btn btn-warning btn-sm"
+                                  onClick={() =>
+                                    handleEdit(
+                                      item
+                                    )
+                                  }
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() =>
+                                    handleDelete(
+                                      id
+                                    )
+                                  }
+                                >
+                                  Hapus
+                                </button>
+
+                              </div>
+                            )}
+
+                          </td>
+
+                        </tr>
+                      );
+                    }
+                  )
+                )}
+
+              </tbody>
+
+            </table>
           </div>
+
         </div>
-      )}
+      </div>
+
     </div>
   );
 }

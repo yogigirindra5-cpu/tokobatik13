@@ -1,32 +1,72 @@
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const jwt = require("jsonwebtoken");
 
-// Middleware untuk memverifikasi token JWT
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // format: "Bearer <token>"
 
-  if (!token) {
-    return res.status(401).json({ message: 'Akses ditolak, token tidak ditemukan' });
-  }
+function verifyToken(req, res, next) {
+  try {
+    const authHeader =
+      req.headers.authorization;
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ message: 'Token tidak valid atau sudah kedaluwarsa' });
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        message: "Token tidak ditemukan",
+      });
     }
-    req.user = decoded; // { id, email, role }
+
+    const token =
+      authHeader.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token tidak ditemukan",
+      });
+    }
+
+    const decoded =
+      jwt.verify(
+        token,
+        process.env.JWT_SECRET
+      );
+
+    req.user = decoded;
+
     next();
-  });
-};
 
-// Middleware untuk membatasi akses hanya untuk role tertentu
-const verifyRole = (...roles) => {
+  } catch (error) {
+    console.error("AUTH ERROR:", error.message);
+
+    return res.status(403).json({
+      success: false,
+      message: "Token tidak valid",
+    });
+  }
+}
+
+
+function verifyRole(...roles) {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Anda tidak memiliki akses ke resource ini' });
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User belum login",
+      });
     }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Akses ditolak",
+      });
+    }
+
     next();
   };
-};
+}
 
-module.exports = { verifyToken, verifyRole };
+
+module.exports = {
+  verifyToken,
+  verifyRole,
+};

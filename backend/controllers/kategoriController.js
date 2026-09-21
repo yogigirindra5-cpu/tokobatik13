@@ -1,84 +1,249 @@
-const KategoriModel = require('../models/kategoriModel');
+const KategoriModel = require("../models/KategoriModel");
 
-const getAllKategori = async (req, res, next) => {
+// ======================================================
+// GET SEMUA KATEGORI
+// GET /api/kategori
+// ======================================================
+
+async function getAllKategori(req, res) {
   try {
-    res.json(await KategoriModel.getAll());
-  } catch (err) {
-    next(err);
+    const kategori = await KategoriModel.getAll();
+
+    return res.status(200).json({
+      success: true,
+      kategori,
+    });
+  } catch (error) {
+    console.error("GET ALL KATEGORI ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal mengambil data kategori",
+      error: error.message,
+    });
   }
-};
+}
 
-const createKategori = async (req, res, next) => {
+// ======================================================
+// GET KATEGORI BERDASARKAN ID
+// GET /api/kategori/:id
+// ======================================================
+
+async function getKategoriById(req, res) {
   try {
-    const namaKategori = req.body.nama_kategori?.trim();
-    if (!namaKategori) {
-      return res.status(400).json({ message: 'Nama kategori wajib diisi' });
-    }
+    const { id } = req.params;
 
-    const id = await KategoriModel.create(namaKategori);
-    res.status(201).json({ id_kategori: id, nama_kategori: namaKategori });
-  } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ message: 'Kategori dengan nama ini sudah ada' });
-    }
-    next(err);
-  }
-};
+    const kategori = await KategoriModel.getById(id);
 
-const updateKategori = async (req, res, next) => {
-  try {
-    const namaKategori = req.body.nama_kategori?.trim();
-    if (!namaKategori) {
-      return res.status(400).json({ message: 'Nama kategori wajib diisi' });
-    }
-
-    const kategori = await KategoriModel.getById(req.params.id);
     if (!kategori) {
-      return res.status(404).json({ message: 'Kategori tidak ditemukan' });
-    }
-
-    const jumlahProduk = await KategoriModel.countProduk(kategori.nama_kategori);
-    if (jumlahProduk > 0) {
-      return res.status(409).json({
-        message: `Kategori tidak bisa diedit karena masih digunakan oleh ${jumlahProduk} produk`,
+      return res.status(404).json({
+        success: false,
+        message: "Kategori tidak ditemukan",
       });
     }
 
-    const affected = await KategoriModel.update(req.params.id, namaKategori);
-    if (!affected) {
-      return res.status(404).json({ message: 'Kategori tidak ditemukan' });
-    }
-    res.json({ id_kategori: Number(req.params.id), nama_kategori: namaKategori });
-  } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ message: 'Kategori dengan nama ini sudah ada' });
-    }
-    next(err);
+    return res.status(200).json({
+      success: true,
+      kategori,
+    });
+  } catch (error) {
+    console.error("GET KATEGORI BY ID ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal mengambil kategori",
+      error: error.message,
+    });
   }
-};
+}
 
-const deleteKategori = async (req, res, next) => {
+// ======================================================
+// CREATE KATEGORI
+// POST /api/kategori
+// ======================================================
+
+async function createKategori(req, res) {
   try {
-    const kategori = await KategoriModel.getById(req.params.id);
-    if (!kategori) {
-      return res.status(404).json({ message: 'Kategori tidak ditemukan' });
-    }
+    const { nama_kategori } = req.body;
 
-    const jumlahProduk = await KategoriModel.countProduk(kategori.nama_kategori);
-    if (jumlahProduk > 0) {
-      return res.status(409).json({
-        message: `Kategori tidak bisa dihapus karena masih digunakan oleh ${jumlahProduk} produk`,
+    // Validasi
+    if (
+      !nama_kategori ||
+      typeof nama_kategori !== "string" ||
+      !nama_kategori.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Nama kategori wajib diisi",
       });
     }
 
-    const affected = await KategoriModel.delete(req.params.id);
-    if (!affected) {
-      return res.status(404).json({ message: 'Kategori tidak ditemukan' });
-    }
-    res.json({ message: 'Kategori berhasil dihapus' });
-  } catch (err) {
-    next(err);
-  }
-};
+    const namaKategori = nama_kategori.trim();
 
-module.exports = { getAllKategori, createKategori, updateKategori, deleteKategori };
+    const kategori = await KategoriModel.create(
+      namaKategori
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Kategori berhasil ditambahkan",
+      kategori,
+    });
+  } catch (error) {
+    console.error("CREATE KATEGORI ERROR:", error);
+
+    // PostgreSQL UNIQUE violation
+    if (error.code === "23505") {
+      return res.status(400).json({
+        success: false,
+        message: "Nama kategori sudah digunakan",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal menambahkan kategori",
+      error: error.message,
+    });
+  }
+}
+
+// ======================================================
+// UPDATE KATEGORI
+// PUT /api/kategori/:id
+// ======================================================
+
+async function updateKategori(req, res) {
+  try {
+    const { id } = req.params;
+    const { nama_kategori } = req.body;
+
+    // Validasi
+    if (
+      !nama_kategori ||
+      typeof nama_kategori !== "string" ||
+      !nama_kategori.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Nama kategori wajib diisi",
+      });
+    }
+
+    const namaKategori = nama_kategori.trim();
+
+    const kategori = await KategoriModel.update(
+      id,
+      namaKategori
+    );
+
+    if (!kategori) {
+      return res.status(404).json({
+        success: false,
+        message: "Kategori tidak ditemukan",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Kategori berhasil diperbarui",
+      kategori,
+    });
+  } catch (error) {
+    console.error("UPDATE KATEGORI ERROR:", error);
+
+    // PostgreSQL UNIQUE violation
+    if (error.code === "23505") {
+      return res.status(400).json({
+        success: false,
+        message: "Nama kategori sudah digunakan",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal memperbarui kategori",
+      error: error.message,
+    });
+  }
+}
+
+// ======================================================
+// DELETE KATEGORI
+// DELETE /api/kategori/:id
+// ======================================================
+
+async function deleteKategori(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Ambil kategori terlebih dahulu
+    const kategori = await KategoriModel.getById(id);
+
+    if (!kategori) {
+      return res.status(404).json({
+        success: false,
+        message: "Kategori tidak ditemukan",
+      });
+    }
+
+    // Cek apakah kategori masih digunakan produk
+    const jumlahProduk =
+      await KategoriModel.countProduk(
+        kategori.nama_kategori
+      );
+
+    if (jumlahProduk > 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          `Kategori tidak dapat dihapus karena masih digunakan oleh ${jumlahProduk} produk`,
+      });
+    }
+
+    const deleted =
+      await KategoriModel.delete(id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Kategori tidak ditemukan",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Kategori berhasil dihapus",
+      kategori: deleted,
+    });
+  } catch (error) {
+    console.error("DELETE KATEGORI ERROR:", error);
+
+    // PostgreSQL foreign key violation
+    if (error.code === "23503") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Kategori tidak dapat dihapus karena masih digunakan",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal menghapus kategori",
+      error: error.message,
+    });
+  }
+}
+
+// ======================================================
+// EXPORT
+// ======================================================
+
+module.exports = {
+  getAllKategori,
+  getKategoriById,
+  createKategori,
+  updateKategori,
+  deleteKategori,
+};

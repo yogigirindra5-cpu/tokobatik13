@@ -1,78 +1,127 @@
-const db = require('../config/db');
+const pool = require("../config/db");
 
-let tableReady;
-
-const ensureTable = async () => {
-  if (!tableReady) {
-    tableReady = (async () => {
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS kategori (
-          id_kategori INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-          nama_kategori VARCHAR(100) UNIQUE NOT NULL,
-          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-      `);
-      await db.query(`
-        INSERT IGNORE INTO kategori (nama_kategori) VALUES
-          ('Kemeja Batik'), ('Dress Batik'), ('Kain Batik'), ('Sarung Batik')
-      `);
-    })();
-  }
-  await tableReady;
-};
+// ======================================================
+// KATEGORI MODEL
+// PostgreSQL / Neon
+// ======================================================
 
 const KategoriModel = {
+  // ====================================================
+  // GET SEMUA KATEGORI
+  // ====================================================
+
   getAll: async () => {
-    await ensureTable();
-    const [rows] = await db.query(
-      'SELECT id_kategori, nama_kategori FROM kategori ORDER BY nama_kategori ASC'
-    );
-    return rows;
+    const result = await pool.query(`
+      SELECT
+        id_kategori,
+        nama_kategori
+      FROM kategori
+      ORDER BY id_kategori ASC
+    `);
+
+    return result.rows;
   },
 
-  create: async (namaKategori) => {
-    await ensureTable();
-    const [result] = await db.query(
-      'INSERT INTO kategori (nama_kategori) VALUES (?)',
-      [namaKategori]
-    );
-    return result.insertId;
-  },
+  // ====================================================
+  // GET KATEGORI BERDASARKAN ID
+  // ====================================================
 
   getById: async (id) => {
-    await ensureTable();
-    const [rows] = await db.query(
-      'SELECT id_kategori, nama_kategori FROM kategori WHERE id_kategori = ?',
+    const result = await pool.query(
+      `
+      SELECT
+        id_kategori,
+        nama_kategori
+      FROM kategori
+      WHERE id_kategori = $1
+      LIMIT 1
+      `,
       [id]
     );
-    return rows[0];
+
+    return result.rows[0] || null;
   },
 
-  update: async (id, namaKategori) => {
-    await ensureTable();
-    const [result] = await db.query(
-      'UPDATE kategori SET nama_kategori = ? WHERE id_kategori = ?',
-      [namaKategori, id]
-    );
-    return result.affectedRows;
-  },
+  // ====================================================
+  // CREATE KATEGORI
+  // ====================================================
 
-  countProduk: async (namaKategori) => {
-    const [rows] = await db.query(
-      'SELECT COUNT(*) AS jumlah FROM produk_batik WHERE kategori = ?',
+  create: async (namaKategori) => {
+    const result = await pool.query(
+      `
+      INSERT INTO kategori (
+        nama_kategori
+      )
+      VALUES ($1)
+      RETURNING
+        id_kategori,
+        nama_kategori
+      `,
       [namaKategori]
     );
-    return Number(rows[0]?.jumlah || 0);
+
+    return result.rows[0];
   },
 
+  // ====================================================
+  // UPDATE KATEGORI
+  // ====================================================
+
+  update: async (id, namaKategori) => {
+    const result = await pool.query(
+      `
+      UPDATE kategori
+      SET nama_kategori = $1
+      WHERE id_kategori = $2
+      RETURNING
+        id_kategori,
+        nama_kategori
+      `,
+      [namaKategori, id]
+    );
+
+    return result.rows[0] || null;
+  },
+
+  // ====================================================
+  // HITUNG PRODUK BERDASARKAN KATEGORI
+  // ====================================================
+
+  countProduk: async (namaKategori) => {
+    const result = await pool.query(
+      `
+      SELECT COUNT(*) AS jumlah
+      FROM produk_batik
+      WHERE kategori = $1
+      `,
+      [namaKategori]
+    );
+
+    return Number(result.rows[0]?.jumlah || 0);
+  },
+
+  // ====================================================
+  // DELETE KATEGORI
+  // ====================================================
+
   delete: async (id) => {
-    await ensureTable();
-    const [result] = await db.query(
-      'DELETE FROM kategori WHERE id_kategori = ?',
+    const result = await pool.query(
+      `
+      DELETE FROM kategori
+      WHERE id_kategori = $1
+      RETURNING
+        id_kategori,
+        nama_kategori
+      `,
       [id]
     );
-    return result.affectedRows;
+
+    return result.rows[0] || null;
   },
 };
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = KategoriModel;

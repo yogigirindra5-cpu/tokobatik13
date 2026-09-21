@@ -1,26 +1,50 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
 
-const authRoutes = require('./routes/authRoutes');
-const produkRoutes = require('./routes/produkRoutes');
-const transaksiRoutes = require('./routes/transaksiRoutes');
-const artikelRoutes = require('./routes/artikelRoutes');
-const { errorHandler, notFound } = require('./middlewares/errorHandler');
+require("dotenv").config();
+
+// ======================================================
+// ROUTES
+// ======================================================
+
+const authRoutes = require("./routes/authRoutes");
+const produkRoutes = require("./routes/produkRoutes");
+const kategoriRoutes = require("./routes/kategoriRoutes");
+const transaksiRoutes = require("./routes/transaksiRoutes");
+const artikelRoutes = require("./routes/artikelRoutes");
+
+// ======================================================
+// ERROR HANDLER
+// ======================================================
+
+const {
+  errorHandler,
+  notFound,
+} = require("./middlewares/errorHandler");
+
+// ======================================================
+// APP
+// ======================================================
 
 const app = express();
 
+// ======================================================
+// CORS
+// ======================================================
+
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'https://tokobatik13.vercel.app',
+  "http://localhost:5173",
+  "http://localhost:5174",
+
+  "https://tokobatik13-khxf-beta.vercel.app",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Request tanpa Origin, misalnya Postman/Insomnia
+      // Request tanpa origin
+      // misalnya Postman / Insomnia
       if (!origin) {
         return callback(null, true);
       }
@@ -29,60 +53,124 @@ app.use(
         return callback(null, true);
       }
 
-      console.log('❌ CORS ditolak:', origin);
+      console.log("❌ CORS ditolak:", origin);
 
       return callback(
-        new Error(`Origin tidak diizinkan oleh CORS: ${origin}`)
+        new Error(
+          `Origin tidak diizinkan: ${origin}`
+        )
       );
     },
 
     credentials: true,
 
     methods: [
-      'GET',
-      'POST',
-      'PUT',
-      'PATCH',
-      'DELETE',
-      'OPTIONS'
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
     ],
 
     allowedHeaders: [
-      'Content-Type',
-      'Authorization'
-    ]
+      "Content-Type",
+      "Authorization",
+    ],
   })
 );
 
+// ======================================================
+// BODY PARSER
+// WAJIB SEBELUM ROUTES
+// ======================================================
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 app.use(
-  '/uploads',
-  express.static(path.join(__dirname, 'uploads'))
+  express.urlencoded({
+    extended: true,
+  })
 );
 
-app.get('/', (req, res) => {
+// ======================================================
+// STATIC UPLOADS
+// ======================================================
+
+app.use(
+  "/uploads",
+  express.static(
+    path.join(__dirname, "uploads")
+  )
+);
+
+// ======================================================
+// HOME
+// ======================================================
+
+app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: 'API Toko Batik berjalan dengan baik 🚀'
+    message:
+      "API Toko Batik berjalan dengan baik 🚀",
   });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/produk', produkRoutes);
-app.use('/api/transaksi', transaksiRoutes);
-app.use('/api/artikel', artikelRoutes);
+// ======================================================
+// API ROUTES
+// ======================================================
+
+app.use(
+  "/api/auth",
+  authRoutes
+);
+
+app.use(
+  "/api/produk",
+  produkRoutes
+);
+
+app.use("/api/kategori", kategoriRoutes);
+
+app.use(
+  "/api/transaksi",
+  transaksiRoutes
+);
+
+app.use(
+  "/api/artikel",
+  artikelRoutes
+);
+
+// ======================================================
+// 404
+// ======================================================
 
 app.use(notFound);
+
+// ======================================================
+// ERROR HANDLER
+// ======================================================
+
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+// ======================================================
+// SERVER
+// ======================================================
+
+const PORT =
+  process.env.PORT || 5000;
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`✅ Server berjalan di http://localhost:${PORT}`);
-  });
+  app.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
+      console.log(
+        `✅ Server berjalan di port ${PORT}`
+      );
+    }
+  );
 }
 
 module.exports = app;

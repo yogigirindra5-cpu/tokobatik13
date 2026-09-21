@@ -1,175 +1,272 @@
-import { useEffect, useState } from 'react';
-import { apiFetch, formatTanggal, getImageUrl } from '../../utils.js';
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
-const kosong = { judul: '', ringkasan: '', isi: '' };
+import { API_BASE_URL } from "../../constants.js";
+
+import {
+  mediaUrl,
+  formatTanggal,
+  onImgError,
+} from "../../utils.js";
 
 export default function ListArtikel() {
-  const [artikelList, setArtikelList] = useState([]);
-  const [status, setStatus] = useState('loading');
-  const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState(kosong);
-  const [gambar, setGambar] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [error, setError] = useState('');
+  const [artikel, setArtikel] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const muatArtikel = () => {
-    setStatus('loading');
-    apiFetch('/artikel')
-      .then((data) => {
-        setArtikelList(data);
-        setStatus('ready');
-      })
-      .catch(() => setStatus('error'));
-  };
+  useEffect(() => {
+    loadArtikel();
+  }, []);
 
-  useEffect(() => { muatArtikel(); }, []);
-
-  const bukaTambah = () => {
-    setEditId(null);
-    setForm(kosong);
-    setGambar(null);
-    setPreviewUrl('');
-    setError('');
-    setShowModal(true);
-  };
-
-  const bukaEdit = (a) => {
-    setEditId(a.id);
-    setForm({ judul: a.judul, ringkasan: a.ringkasan, isi: a.isi });
-    setGambar(null);
-    setPreviewUrl(getImageUrl(a.gambar));
-    setError('');
-    setShowModal(true);
-  };
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handlePilihGambar = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setGambar(file);
-    setPreviewUrl(URL.createObjectURL(file));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  async function loadArtikel() {
     try {
-      const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => formData.append(key, value));
-      if (gambar) formData.append('gambar', gambar);
+      setLoading(true);
+      setError("");
 
-      if (editId) {
-        await apiFetch(`/artikel/${editId}`, { method: 'PUT', body: formData });
-      } else {
-        await apiFetch('/artikel', { method: 'POST', body: formData });
+      const response = await fetch(
+        `${API_BASE_URL}/artikel`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            "Gagal mengambil artikel"
+        );
       }
-      setShowModal(false);
-      muatArtikel();
-    } catch (err) {
-      setError(err.data?.message || 'Gagal menyimpan artikel');
-    }
-  };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Hapus artikel ini?')) return;
-    try {
-      await apiFetch(`/artikel/${id}`, { method: 'DELETE' });
-      muatArtikel();
+      const hasil = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.artikel)
+          ? data.artikel
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+
+      setArtikel(hasil);
     } catch (err) {
-      alert(err.data?.message || 'Gagal menghapus artikel');
+      console.error(
+        "LOAD ARTIKEL ERROR:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Gagal mengambil artikel"
+      );
+
+      setArtikel([]);
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   return (
-    <div>
-      <div className="admin-toolbar">
-        <span style={{ color: 'var(--ink-soft)', fontSize: '0.9rem' }}>Artikel cerita &amp; edukasi batik</span>
-        <button className="btn btn-primary btn-sm" onClick={bukaTambah}>+ Tambah Artikel</button>
+    <div className="container-fluid py-4">
+
+      <div className="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+          <h2 className="fw-bold mb-1">
+            Kelola Artikel
+          </h2>
+
+          <p className="text-muted mb-0">
+            Daftar artikel batik
+          </p>
+        </div>
+
+        <Link
+          to="/admin/artikel/tambah"
+          className="btn btn-dark"
+        >
+          Tambah Artikel
+        </Link>
+
       </div>
 
-      <div className="table-wrap">
-        <table className="admin-table artikel-table">
-          <thead>
-            <tr><th>Gambar</th><th>Judul</th><th>Tanggal</th><th className="action-heading">Aksi</th></tr>
-          </thead>
-          <tbody>
-            {status === 'loading' && <tr><td colSpan={4} className="loading-row">Memuat...</td></tr>}
-            {status === 'error' && <tr><td colSpan={4} className="loading-row">Gagal memuat data</td></tr>}
-            {status === 'ready' && artikelList.length === 0 && (
-              <tr><td colSpan={4} className="loading-row">Belum ada artikel</td></tr>
-            )}
-            {status === 'ready' && artikelList.map((a) => (
-              <tr key={a.id}>
-                <td><div className="thumb-sm"><img src={getImageUrl(a.gambar)} alt="" /></div></td>
-                <td>{a.judul}</td>
-                <td>{formatTanggal(a.created_at)}</td>
-                <td className="table-actions action-cell">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon"
-                    onClick={() => bukaEdit(a)}
-                    title="Edit artikel"
-                    aria-label={`Edit artikel ${a.judul}`}
-                  >
-                    <i className="bi bi-pencil-square" aria-hidden="true"></i>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon btn-icon-danger"
-                    onClick={() => handleDelete(a.id)}
-                    title="Hapus artikel"
-                    aria-label={`Hapus artikel ${a.judul}`}
-                  >
-                    <i className="bi bi-trash3" aria-hidden="true"></i>
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading && (
+        <div className="text-center py-5">
 
-      {showModal && (
-        <div className="modal-backdrop show">
-          <div className="modal">
-            <div className="modal-head">
-              <h3>{editId ? 'Edit Artikel' : 'Tambah Artikel'}</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
-            </div>
-            {error && <div className="alert alert-error show">{error}</div>}
-            <form onSubmit={handleSubmit}>
-              <div className="field">
-                <label htmlFor="judul">Judul</label>
-                <input type="text" id="judul" name="judul" required value={form.judul} onChange={handleChange} />
-              </div>
-              <div className="field">
-                <label htmlFor="ringkasan">Ringkasan Singkat</label>
-                <textarea id="ringkasan" name="ringkasan" required value={form.ringkasan} onChange={handleChange}></textarea>
-              </div>
-              <div className="field">
-                <label htmlFor="isi">Isi Artikel</label>
-                <textarea id="isi" name="isi" style={{ minHeight: 160 }} required value={form.isi} onChange={handleChange}></textarea>
-              </div>
-              <div className="field">
-                <label htmlFor="gambar_artikel">Gambar Sampul</label>
-                <input type="file" id="gambar_artikel" accept="image/*" onChange={handlePilihGambar} />
-                {previewUrl && (
-                  <div style={{ marginTop: 10 }}>
-                    <div className="thumb-sm" style={{ width: 120, height: 80 }}>
-                      <img src={previewUrl} alt="Preview" />
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button type="submit" className="btn btn-primary btn-block">Simpan Artikel</button>
-            </form>
+          <div
+            className="spinner-border"
+            role="status"
+          >
+            <span className="visually-hidden">
+              Loading...
+            </span>
           </div>
+
+          <p className="text-muted mt-3">
+            Memuat artikel...
+          </p>
+
         </div>
       )}
+
+      {!loading && error && (
+        <div className="alert alert-danger">
+
+          <strong>
+            Gagal mengambil artikel
+          </strong>
+
+          <div>
+            {error}
+          </div>
+
+          <button
+            className="btn btn-sm btn-danger mt-3"
+            onClick={loadArtikel}
+          >
+            Coba Lagi
+          </button>
+
+        </div>
+      )}
+
+      {!loading &&
+        !error &&
+        artikel.length === 0 && (
+          <div className="card border-0 shadow-sm">
+
+            <div className="card-body text-center py-5">
+
+              <h5>
+                Belum ada artikel
+              </h5>
+
+              <p className="text-muted">
+                Silakan tambahkan artikel baru.
+              </p>
+
+              <Link
+                to="/admin/artikel/tambah"
+                className="btn btn-dark"
+              >
+                Tambah Artikel
+              </Link>
+
+            </div>
+
+          </div>
+        )}
+
+      {!loading &&
+        !error &&
+        artikel.length > 0 && (
+
+          <div className="card border-0 shadow-sm">
+
+            <div className="card-body">
+
+              <div className="table-responsive">
+
+                <table className="table table-hover align-middle">
+
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Gambar</th>
+                      <th>Judul</th>
+                      <th>Ringkasan</th>
+                      <th>Tanggal</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+
+                    {artikel.map(
+                      (item, index) => (
+
+                        <tr key={item.id}>
+
+                          <td>
+                            {index + 1}
+                          </td>
+
+                          <td>
+                            <img
+                              src={mediaUrl(
+                                item.gambar
+                              )}
+                              alt={
+                                item.judul ||
+                                "Artikel"
+                              }
+                              onError={
+                                onImgError
+                              }
+                              style={{
+                                width: "90px",
+                                height: "65px",
+                                objectFit:
+                                  "cover",
+                                borderRadius:
+                                  "8px",
+                              }}
+                            />
+                          </td>
+
+                          <td>
+                            <strong>
+                              {item.judul ||
+                                "Tanpa Judul"}
+                            </strong>
+                          </td>
+
+                          <td>
+                            {item.ringkasan ||
+                              "-"}
+                          </td>
+
+                          <td>
+                            {formatTanggal(
+                              item.created_at
+                            )}
+                          </td>
+
+                          <td>
+
+                            <div className="d-flex gap-2">
+
+                              <Link
+                                to={`/artikel/${item.id}`}
+                                className="btn btn-sm btn-outline-primary"
+                              >
+                                Lihat
+                              </Link>
+
+                              <Link
+                                to={`/admin/artikel/edit/${item.id}`}
+                                className="btn btn-sm btn-outline-warning"
+                              >
+                                Edit
+                              </Link>
+
+                            </div>
+
+                          </td>
+
+                        </tr>
+
+                      )
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
+
     </div>
   );
 }

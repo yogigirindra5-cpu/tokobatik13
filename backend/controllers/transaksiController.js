@@ -1,167 +1,584 @@
-const TransaksiModel = require('../models/transaksiModel');
-const ProdukModel = require('../models/produkModel');
-const UserModel = require('../models/userModel');
+const TransaksiModel = require("../models/transaksiModel");
+const db = require("../config/db");
 
-// Ambil semua transaksi (admin) atau milik sendiri (pembeli)
+// ==========================================
+// GET SEMUA TRANSAKSI
+// ==========================================
 const getAllTransaksi = async (req, res, next) => {
   try {
-    let data;
-    if (req.user.role === 'admin') {
-      data = await TransaksiModel.getAll();
-    } else {
-      data = await TransaksiModel.getByPembeli(req.user.id);
-    }
-    res.json(data);
-  } catch (err) {
-    next(err);
+    const transaksi = await TransaksiModel.getAll();
+
+    return res.json({
+      success: true,
+      data: transaksi,
+      transaksi: transaksi,
+    });
+  } catch (error) {
+    console.error("GET ALL TRANSAKSI ERROR:", error);
+    next(error);
   }
 };
 
-// Ambil detail satu transaksi
+// ==========================================
+// GET TRANSAKSI BERDASARKAN ID
+// ==========================================
 const getTransaksiById = async (req, res, next) => {
   try {
-    const transaksi = await TransaksiModel.getById(req.params.id);
+    const { id } = req.params;
+
+    const transaksi =
+      await TransaksiModel.getById(id);
+
     if (!transaksi) {
-      return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
+      return res.status(404).json({
+        success: false,
+        message: "Transaksi tidak ditemukan",
+      });
     }
 
-    // Pembeli hanya boleh lihat transaksinya sendiri
-    if (req.user.role !== 'admin' && transaksi.id_pembeli !== req.user.id) {
-      return res.status(403).json({ message: 'Anda tidak memiliki akses ke transaksi ini' });
+    // Pembeli hanya boleh melihat transaksi sendiri
+    if (
+      req.user.role !== "admin" &&
+      Number(transaksi.id_pembeli) !==
+        Number(req.user.id)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Akses ditolak",
+      });
     }
 
-    res.json(transaksi);
-  } catch (err) {
-    next(err);
+    return res.json({
+      success: true,
+      data: transaksi,
+      transaksi: transaksi,
+    });
+  } catch (error) {
+    console.error(
+      "GET TRANSAKSI BY ID ERROR:",
+      error
+    );
+
+    next(error);
   }
 };
 
-// Buat transaksi baru (checkout produk)
-const createTransaksi = async (req, res, next) => {
+// ==========================================
+// CREATE TRANSAKSI
+// ==========================================
+const createTransaksi = async (
+  req,
+  res,
+  next
+) => {
+  const client = await db.connect();
+
   try {
-    const { id_produk, jumlah, metode_pembayaran, catatan } = req.body;
-
-    if (!id_produk || !jumlah) {
-      return res.status(400).json({ message: 'Produk dan jumlah wajib diisi' });
-    }
-
-    const user = await UserModel.getById(req.user.id);
-    if (!user || !user.nama_d || !user.phone || !user.alamat) {
-      return res.status(400).json({ message: 'Lengkapi nama, nomor telepon, dan alamat di profil terlebih dahulu' });
-    }
-
-    const produk = await ProdukModel.getById(id_produk);
-    if (!produk) {
-      return res.status(404).json({ message: 'Produk tidak ditemukan' });
-    }
-
-    if (produk.status_produk === 'Habis' || produk.stok < jumlah) {
-      return res.status(400).json({ message: 'Stok produk tidak mencukupi' });
-    }
-
-    const total_harga = produk.harga * jumlah;
-
-    const idTransaksi = await TransaksiModel.create({
-      id_pembeli: req.user.id,
+    const {
       id_produk,
-      nama_pembeli: user.nama_d,
-      phone_pembeli: user.phone,
+      nama_pembeli,
+      phone_pembeli,
       jumlah,
       total_harga,
       metode_pembayaran,
-      alamat_kirim: user.alamat,
-      catatan
-    });
+      alamat_kirim,
+      catatan,
+    } = req.body;
 
-    // Kurangi stok produk setelah transaksi dibuat
-    await ProdukModel.updateStok(id_produk, jumlah);
+    /*
+     * User yang sedang login
+     */
+    const id_pembeli = req.user.id;
 
-    res.status(201).json({
-      message: 'Transaksi berhasil dibuat, silakan lakukan pembayaran',
-      id_transaksi: idTransaksi,
-      total_harga
+    /*
+     * Konversi angka
+     */
+    const idProduk = Number(id_produk);
+    const jumlahProduk = Number(jumlah);
+    const totalHarga = Number(total_harga);
+
+    // ==========================================
+    // VALIDASI USER
+    // ==========================================
+    if (!id_pembeli) {
+      return res.status(401).json({
+        success: false,
+        message: "User tidak ditemukan",
+      });
+    }
+
+    // ==========================================
+    // VALIDASI PRODUK
+    // ==========================================
+    if (
+      !Number.isInteger(idProduk) ||
+      idProduk <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Produk wajib dipilih",
+      });
+    }
+
+    // ==========================================
+    // VALIDASI JUMLAH
+    // ==========================================
+    if (
+      !Number.isInteger(jumlahProduk) ||
+      jumlahProduk <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Jumlah produk tidak valid",
+      });
+    }
+
+    // ==========================================
+    // VALIDASI TOTAL HARGA
+    // ==========================================
+    if (
+      !Number.isFinite(totalHarga) ||
+      totalHarga <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Total harga tidak valid",
+      });
+    }
+
+    // ==========================================
+    // MULAI TRANSAKSI DATABASE
+    // ==========================================
+    await client.query("BEGIN");
+
+    // ==========================================
+    // LOCK PRODUK
+    // ==========================================
+    const produkResult =
+      await client.query(
+        `
+        SELECT *
+        FROM produk_batik
+        WHERE id_produk = $1
+        FOR UPDATE
+        `,
+        [idProduk]
+      );
+
+    if (
+      produkResult.rows.length === 0
+    ) {
+      await client.query("ROLLBACK");
+
+      return res.status(404).json({
+        success: false,
+        message:
+          "Produk tidak ditemukan",
+      });
+    }
+
+    const produk =
+      produkResult.rows[0];
+
+    // ==========================================
+    // CEK STOK
+    // ==========================================
+    const stokLama =
+      Number(produk.stok);
+
+    if (
+      !Number.isFinite(stokLama)
+    ) {
+      await client.query("ROLLBACK");
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Stok produk tidak valid",
+      });
+    }
+
+    if (
+      stokLama < jumlahProduk
+    ) {
+      await client.query("ROLLBACK");
+
+      return res.status(400).json({
+        success: false,
+        message:
+          `Stok tidak mencukupi. Stok tersedia: ${stokLama}`,
+      });
+    }
+
+    // ==========================================
+    // HITUNG STOK BARU
+    // ==========================================
+    const stokBaru =
+      stokLama - jumlahProduk;
+
+    // ==========================================
+    // TENTUKAN STATUS PRODUK
+    // ==========================================
+    const statusProduk =
+      stokBaru <= 0
+        ? "Habis"
+        : "Tersedia";
+
+    // ==========================================
+    // INSERT TRANSAKSI
+    // ==========================================
+    const transaksiResult =
+      await client.query(
+        `
+        INSERT INTO transaksi (
+          id_pembeli,
+          id_produk,
+          nama_pembeli,
+          phone_pembeli,
+          jumlah,
+          total_harga,
+          metode_pembayaran,
+          alamat_kirim,
+          catatan,
+          pembayaran,
+          status
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          'Belum',
+          'Tertunda'
+        )
+        RETURNING *
+        `,
+        [
+          id_pembeli,
+          idProduk,
+          nama_pembeli
+            ? String(
+                nama_pembeli
+              ).trim()
+            : null,
+          phone_pembeli
+            ? String(
+                phone_pembeli
+              ).trim()
+            : null,
+          jumlahProduk,
+          totalHarga,
+          metode_pembayaran ||
+            "Bank Transfer",
+          alamat_kirim
+            ? String(
+                alamat_kirim
+              ).trim()
+            : null,
+          catatan
+            ? String(catatan).trim()
+            : null,
+        ]
+      );
+
+    // ==========================================
+    // UPDATE STOK + STATUS PRODUK
+    // ==========================================
+    await client.query(
+      `
+      UPDATE produk_batik
+      SET
+        stok = $1,
+        status_produk = $2::status_produk
+      WHERE id_produk = $3
+      `,
+      [
+        stokBaru,
+        statusProduk,
+        idProduk,
+      ]
+    );
+
+    // ==========================================
+    // COMMIT
+    // ==========================================
+    await client.query("COMMIT");
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
+    return res.status(201).json({
+      success: true,
+      message:
+        "Transaksi berhasil dibuat",
+
+      data:
+        transaksiResult.rows[0],
+
+      transaksi:
+        transaksiResult.rows[0],
     });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    /*
+     * Rollback jika terjadi error
+     */
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error(
+        "ROLLBACK ERROR:",
+        rollbackError
+      );
+    }
+
+    console.error(
+      "CREATE TRANSAKSI ERROR:",
+      error
+    );
+
+    next(error);
+  } finally {
+    client.release();
   }
 };
 
-// Upload bukti pembayaran (pembeli)
-const uploadBuktiBayar = async (req, res, next) => {
+// ==========================================
+// UPLOAD BUKTI BAYAR
+// ==========================================
+const uploadBuktiBayar = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const transaksi = await TransaksiModel.getById(req.params.id);
-    if (!transaksi) {
-      return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
-    }
-    if (transaksi.id_pembeli !== req.user.id) {
-      return res.status(403).json({ message: 'Anda tidak memiliki akses ke transaksi ini' });
-    }
+    const { id } = req.params;
+
     if (!req.file) {
-      return res.status(400).json({ message: 'Bukti pembayaran wajib diunggah' });
+      return res.status(400).json({
+        success: false,
+        message:
+          "File bukti pembayaran wajib diupload",
+      });
     }
 
-    await TransaksiModel.updatePembayaran(req.params.id, 'Dibayar', req.file.filename);
-    res.json({ message: 'Bukti pembayaran berhasil diunggah, menunggu verifikasi admin' });
-  } catch (err) {
-    next(err);
+    const transaksi =
+      await TransaksiModel.getById(id);
+
+    if (!transaksi) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Transaksi tidak ditemukan",
+      });
+    }
+
+    if (
+      req.user.role !== "admin" &&
+      Number(transaksi.id_pembeli) !==
+        Number(req.user.id)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Akses ditolak",
+      });
+    }
+
+    const fotoBukti =
+      req.file.filename;
+
+    const updated =
+      await TransaksiModel.updatePembayaran(
+        id,
+        "Dibayar",
+        fotoBukti
+      );
+
+    return res.json({
+      success: true,
+      message:
+        "Bukti pembayaran berhasil diupload",
+      data: updated,
+      transaksi: updated,
+    });
+  } catch (error) {
+    console.error(
+      "UPLOAD BUKTI BAYAR ERROR:",
+      error
+    );
+
+    next(error);
   }
 };
 
-// Update status transaksi (khusus admin)
-const updateStatusTransaksi = async (req, res, next) => {
+// ==========================================
+// UPDATE STATUS TRANSAKSI
+// ==========================================
+const updateStatusTransaksi = async (
+  req,
+  res,
+  next
+) => {
   try {
+    const { id } = req.params;
     const { status } = req.body;
-    const validStatus = ['Tertunda', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan'];
 
-    if (!validStatus.includes(status)) {
-      return res.status(400).json({ message: 'Status tidak valid' });
+    const statusValid = [
+      "Tertunda",
+      "Diproses",
+      "Dikirim",
+      "Selesai",
+      "Dibatalkan",
+    ];
+
+    if (!statusValid.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Status transaksi tidak valid",
+      });
     }
 
-    const affected = await TransaksiModel.updateStatus(req.params.id, status);
-    if (!affected) {
-      return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
+    const transaksi =
+      await TransaksiModel.updateStatus(
+        id,
+        status
+      );
+
+    if (!transaksi) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Transaksi tidak ditemukan",
+      });
     }
 
-    res.json({ message: `Status transaksi berhasil diubah menjadi ${status}` });
-  } catch (err) {
-    next(err);
+    return res.json({
+      success: true,
+      message:
+        "Status transaksi berhasil diperbarui",
+      data: transaksi,
+      transaksi: transaksi,
+    });
+  } catch (error) {
+    console.error(
+      "UPDATE STATUS TRANSAKSI ERROR:",
+      error
+    );
+
+    next(error);
   }
 };
 
-// Admin: update status pembayaran secara manual (misal setelah cek transfer manual)
-const updatePembayaranAdmin = async (req, res, next) => {
+// ==========================================
+// UPDATE PEMBAYARAN ADMIN
+// ==========================================
+const updatePembayaranAdmin = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const { status_bayar } = req.body;
-    const validStatusBayar = ['Belum', 'Dibayar'];
+    const { id } = req.params;
+    const { pembayaran } = req.body;
 
-    if (!validStatusBayar.includes(status_bayar)) {
-      return res.status(400).json({ message: 'Status pembayaran tidak valid' });
+    const pembayaranValid = [
+      "Belum",
+      "Dibayar",
+    ];
+
+    if (
+      !pembayaranValid.includes(
+        pembayaran
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Status pembayaran tidak valid",
+      });
     }
 
-    const affected = await TransaksiModel.updatePembayaran(req.params.id, status_bayar, null);
-    if (!affected) {
-      return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
+    const transaksi =
+      await TransaksiModel.updatePembayaran(
+        id,
+        pembayaran,
+        null
+      );
+
+    if (!transaksi) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Transaksi tidak ditemukan",
+      });
     }
 
-    res.json({ message: `Status pembayaran berhasil diubah menjadi ${status_bayar}` });
-  } catch (err) {
-    next(err);
+    return res.json({
+      success: true,
+      message:
+        "Status pembayaran berhasil diperbarui",
+      data: transaksi,
+      transaksi: transaksi,
+    });
+  } catch (error) {
+    console.error(
+      "UPDATE PEMBAYARAN ERROR:",
+      error
+    );
+
+    next(error);
   }
 };
 
-// Admin: hapus transaksi
-const deleteTransaksi = async (req, res, next) => {
+// ==========================================
+// DELETE TRANSAKSI
+// ==========================================
+const deleteTransaksi = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const affected = await TransaksiModel.delete(req.params.id);
-    if (!affected) {
-      return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
+    const { id } = req.params;
+
+    const transaksi =
+      await TransaksiModel.delete(id);
+
+    if (!transaksi) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Transaksi tidak ditemukan",
+      });
     }
-    res.json({ message: 'Transaksi berhasil dihapus' });
-  } catch (err) {
-    next(err);
+
+    return res.json({
+      success: true,
+      message:
+        "Transaksi berhasil dihapus",
+      data: transaksi,
+      transaksi: transaksi,
+    });
+  } catch (error) {
+    console.error(
+      "DELETE TRANSAKSI ERROR:",
+      error
+    );
+
+    next(error);
   }
 };
 
+// ==========================================
+// EXPORT
+// ==========================================
 module.exports = {
   getAllTransaksi,
   getTransaksiById,
@@ -169,5 +586,5 @@ module.exports = {
   uploadBuktiBayar,
   updateStatusTransaksi,
   updatePembayaranAdmin,
-  deleteTransaksi
+  deleteTransaksi,
 };

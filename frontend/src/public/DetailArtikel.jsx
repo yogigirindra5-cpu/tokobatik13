@@ -1,43 +1,242 @@
-// src/pages/DetailArtikel.jsx
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { formatTanggal, getImageUrl } from '../utils.js';
-import { API_BASE_URL } from '../constants.js';
+import React, { useEffect, useState } from "react";
+
+import {
+  Link,
+  useParams,
+} from "react-router-dom";
+
+import {
+  API_BASE_URL,
+} from "../constants.js";
+
+import {
+  mediaUrl,
+  formatTanggal,
+  onImgError,
+} from "../utils.js";
+
+// ======================================================
+// DETAIL ARTIKEL
+// ======================================================
 
 export default function DetailArtikel() {
   const { id } = useParams();
-  const [artikel, setArtikel] = useState(null);
-  const [status, setStatus] = useState('loading');
+
+  const [artikel, setArtikel] =
+    useState(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  // ====================================================
+  // AMBIL DETAIL ARTIKEL
+  // ====================================================
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/artikel/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Gagal memuat artikel');
-        return res.json();
-      })
-      .then((data) => {
-        setArtikel(data);
-        setStatus('ready');
-      })
-      .catch(() => setStatus('error'));
+    const fetchArtikel = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(
+          `${API_BASE_URL}/artikel/${id}`
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message ||
+              "Gagal mengambil artikel"
+          );
+        }
+
+        setArtikel(
+          data?.artikel ||
+            data?.data ||
+            data
+        );
+      } catch (err) {
+        console.error(
+          "DETAIL ARTIKEL ERROR:",
+          err
+        );
+
+        setError(
+          err.message ||
+            "Gagal mengambil artikel"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchArtikel();
+    }
   }, [id]);
 
-  if (status === 'loading') return <p className="loading-row">Memuat artikel...</p>;
-  if (status === 'error' || !artikel) {
-    return <div className="empty-state"><h3>Artikel tidak ditemukan</h3></div>;
+  // ====================================================
+  // LOADING
+  // ====================================================
+
+  if (loading) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <div
+            className="spinner-border"
+            role="status"
+          >
+            <span className="visually-hidden">
+              Loading...
+            </span>
+          </div>
+
+          <p className="mt-3 text-muted">
+            Memuat artikel...
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="container" style={{ maxWidth: 760, paddingBottom: 64 }}>
-      <div className="article-date" style={{ marginTop: 24 }}>{formatTanggal(artikel.created_at)}</div>
-      <h1>{artikel.judul}</h1>
-      <div className="detail-visual" style={{ aspectRatio: '16/9', marginBottom: 24 }}>
-        <img src={getImageUrl(artikel.gambar)} alt={artikel.judul} />
+  // ====================================================
+  // ERROR
+  // ====================================================
+
+  if (error || !artikel) {
+    return (
+      <div className="container py-5">
+        <div className="text-center">
+          <h3>
+            Artikel tidak ditemukan
+          </h3>
+
+          <p className="text-muted">
+            {error ||
+              "Data artikel tidak tersedia."}
+          </p>
+
+          <Link
+            to="/artikel"
+            className="btn btn-primary"
+          >
+            Kembali ke Artikel
+          </Link>
+        </div>
       </div>
-      <div style={{ whiteSpace: 'pre-line', maxWidth: 'none' }}>{artikel.isi}</div>
-      <p style={{ marginTop: 32 }}>
-        <Link to="/artikel">&larr; Kembali ke semua artikel</Link>
-      </p>
+    );
+  }
+
+  // ====================================================
+  // DATA
+  // ====================================================
+
+  const judul =
+    artikel.judul ||
+    "Artikel Batik";
+
+  const ringkasan =
+    artikel.ringkasan ||
+    "";
+
+  const isi =
+    artikel.isi ||
+    "";
+
+  const gambar =
+    artikel.gambar ||
+    null;
+
+  const tanggal =
+    artikel.created_at ||
+    artikel.updated_at ||
+    null;
+
+  // ====================================================
+  // RENDER
+  // ====================================================
+
+  return (
+    <div className="container py-5">
+
+      {/* ================================================= */}
+      {/* BACK */}
+      {/* ================================================= */}
+
+      <div className="mb-4">
+        <Link
+          to="/artikel"
+          className="text-decoration-none"
+        >
+          ← Kembali ke Artikel
+        </Link>
+      </div>
+
+      {/* ================================================= */}
+      {/* ARTIKEL */}
+      {/* ================================================= */}
+
+      <article className="mx-auto">
+        {/* JUDUL */}
+
+        <h1 className="fw-bold mb-3">
+          {judul}
+        </h1>
+
+        {/* TANGGAL */}
+
+        {tanggal && (
+          <div className="text-muted mb-4">
+            {formatTanggal(tanggal)}
+          </div>
+        )}
+
+        {/* GAMBAR */}
+
+        {gambar && (
+          <div className="mb-4">
+            <img
+              src={mediaUrl(gambar)}
+              alt={judul}
+              className="img-fluid rounded shadow-sm w-100"
+              style={{
+                maxHeight: "500px",
+                objectFit: "cover",
+              }}
+              onError={onImgError}
+            />
+          </div>
+        )}
+
+        {/* RINGKASAN */}
+
+        {ringkasan && (
+          <div className="mb-4">
+            <p className="lead">
+              {ringkasan}
+            </p>
+          </div>
+        )}
+
+        {/* ISI */}
+
+        <div
+          className="artikel-content"
+          style={{
+            whiteSpace: "pre-line",
+            lineHeight: "1.8",
+          }}
+        >
+          {isi}
+        </div>
+      </article>
+
     </div>
   );
 }

@@ -1,155 +1,316 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { API_BASE_URL, STATUS_PROSES, STATUS_BAYAR } from '../../constants.js';
-import { getToken, formatRupiah, formatTanggal, getImageUrl } from '../../utils.js';
+import React, {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  apiFetch,
+  formatRupiah,
+  formatTanggal,
+} from "../../utils.js";
 
 export default function ListPembelian() {
-  const [list, setList] = useState([]);
-  const [status, setStatus] = useState('loading');
-  const [error, setError] = useState('');
+  const [transaksi, setTransaksi] = useState([]);
 
-  const muatTransaksi = () => {
-    setStatus('loading');
-    fetch(`${API_BASE_URL}/api/transaksi`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Gagal memuat transaksi');
-        return res.json();
-      })
-      .then((data) => {
-        setList(data);
-        setStatus('ready');
-      })
-      .catch(() => setStatus('error'));
-  };
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { muatTransaksi(); }, []);
+  const [error, setError] = useState("");
 
-  const handleUpdate = async (id, field, value) => {
-    setError('');
+  useEffect(() => {
+    loadTransaksi();
+  }, []);
+
+  const loadTransaksi = async () => {
     try {
-      const url = field === 'status'
-        ? `${API_BASE_URL}/api/transaksi/${id}/status`
-        : `${API_BASE_URL}/api/transaksi/${id}/pembayaran`;
+      setLoading(true);
+      setError("");
 
-      const body = field === 'status'
-        ? { status: value }
-        : { status_bayar: value };
+      const data = await apiFetch(
+        "/transaksi"
+      );
 
-      const res = await fetch(url, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Gagal mengubah status');
+      console.log(
+        "DATA TRANSAKSI:",
+        data
+      );
 
-      muatTransaksi();
-    } catch (err) {
-      setError(err.message);
+      let list = [];
+
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (
+        Array.isArray(data?.transaksi)
+      ) {
+        list = data.transaksi;
+      } else if (
+        Array.isArray(data?.transactions)
+      ) {
+        list = data.transactions;
+      } else if (
+        Array.isArray(data?.data)
+      ) {
+        list = data.data;
+      }
+
+      setTransaksi(list);
+    } catch (error) {
+      console.error(
+        "GET TRANSAKSI ERROR:",
+        error
+      );
+
+      setError(
+        error.message ||
+          "Gagal mengambil data transaksi"
+      );
+
+      setTransaksi([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleHapus = async (id) => {
-    if (!confirm('Hapus transaksi ini?')) return;
-    setError('');
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/transaksi/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Gagal menghapus transaksi');
-      muatTransaksi();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div
+            className="spinner-border"
+            role="status"
+          >
+            <span className="visually-hidden">
+              Loading...
+            </span>
+          </div>
+
+          <p className="mt-3 text-muted">
+            Memuat data pembelian...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="admin-toolbar">
-        <span style={{ color: 'var(--ink-soft)', fontSize: '0.9rem' }}>Semua pesanan yang masuk dari pembeli</span>
+    <div className="container-fluid py-4">
+
+      {/* HEADER */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+          <h2 className="fw-bold mb-1">
+            Data Pembelian
+          </h2>
+
+          <p className="text-muted mb-0">
+            Daftar transaksi pembelian pelanggan
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-dark"
+          onClick={loadTransaksi}
+        >
+          Refresh
+        </button>
+
       </div>
 
-      {error && <div className="alert alert-error show">{error}</div>}
+      {/* ERROR */}
+      {error && (
+        <div
+          className="alert alert-danger"
+          role="alert"
+        >
+          <strong>
+            Gagal memuat data
+          </strong>
 
-      <div className="table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Pembeli</th>
-              <th>No HP</th>
-              <th>Produk</th>
-              <th>Total</th>
-              <th>Metode Bayar</th>
-              <th>Bukti Bayar</th>
-              <th>Status Bayar</th>
-              <th>Status Proses</th>
-              <th>Tanggal</th>
-              <th className="admin-action-heading">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {status === 'loading' && <tr><td colSpan={10} className="loading-row">Memuat...</td></tr>}
-            {status === 'error' && <tr><td colSpan={10} className="loading-row">Gagal memuat data</td></tr>}
-            {status === 'ready' && list.length === 0 && (
-              <tr><td colSpan={10} className="loading-row">Belum ada transaksi</td></tr>
-            )}
-            {status === 'ready' && list.map((t) => (
-              <tr key={t.id}>
-                <td>{t.nama_pembeli || t.uname}</td>
-                <td>{t.phone_pembeli || '-'}</td>
-                <td>{t.nama_produk} ({t.jumlah}x)</td>
-                <td>{formatRupiah(t.total_harga)}</td>
-                <td>{t.metode_pembayaran}</td>
-                <td>
-                  {t.foto_bukti ? (
-                    <a href={getImageUrl(t.foto_bukti)} target="_blank" rel="noreferrer">
-                      <div className="thumb-sm">
-                        <img src={getImageUrl(t.foto_bukti)} alt="Bukti bayar" />
-                      </div>
-                    </a>
-                  ) : (
-                    <span style={{ color: 'var(--ink-soft)', fontSize: '0.85rem' }}>Belum ada</span>
-                  )}
-                </td>
-                <td>
-                  <select
-                    value={t.pembayaran}
-                    onChange={(e) => handleUpdate(t.id, 'pembayaran', e.target.value)}
-                    style={{ width: 'auto', padding: '6px 10px', fontSize: '0.85rem' }}>
-                    {STATUS_BAYAR.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </td>
-                <td>
-                  <select
-                    value={t.status}
-                    onChange={(e) => handleUpdate(t.id, 'status', e.target.value)}
-                    style={{ width: 'auto', padding: '6px 10px', fontSize: '0.85rem' }}>
-                    {STATUS_PROSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </td>
-                <td>{formatTanggal(t.created_at)}</td>
-                <td className="table-actions admin-action-cell">
-                  <div className="admin-action-buttons">
-                    <Link to={`/admin/pembelian/${t.id}`} className="btn btn-ghost btn-icon" title="Lihat detail" aria-label={`Lihat detail transaksi ${t.id}`}>
-                      <i className="bi bi-eye" aria-hidden="true"></i>
-                    </Link>
-                    <button className="btn btn-ghost btn-icon btn-icon-danger" onClick={() => handleHapus(t.id)} title="Hapus transaksi" aria-label={`Hapus transaksi ${t.id}`}>
-                      <i className="bi bi-trash3" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          <div className="mt-1">
+            {error}
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-sm btn-danger mt-3"
+            onClick={loadTransaksi}
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
+
+      {/* DATA KOSONG */}
+      {!error &&
+        transaksi.length === 0 && (
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center py-5">
+
+              <h5>
+                Belum ada data pembelian
+              </h5>
+
+              <p className="text-muted mb-0">
+                Belum terdapat transaksi pembelian.
+              </p>
+
+            </div>
+          </div>
+        )}
+
+      {/* TABEL */}
+      {!error &&
+        transaksi.length > 0 && (
+          <div className="card border-0 shadow-sm">
+
+            <div className="card-body">
+
+              <div className="table-responsive">
+
+                <table className="table table-bordered table-hover align-middle mb-0">
+
+                  <thead>
+                    <tr>
+                      <th>
+                        No
+                      </th>
+
+                      <th>
+                        Pembeli
+                      </th>
+
+                      <th>
+                        Produk
+                      </th>
+
+                      <th>
+                        Jumlah
+                      </th>
+
+                      <th>
+                        Total
+                      </th>
+
+                      <th>
+                        Pembayaran
+                      </th>
+
+                      <th>
+                        Status
+                      </th>
+
+                      <th>
+                        Tanggal
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+
+                    {transaksi.map(
+                      (item, index) => {
+
+                        const id =
+                          item.id ??
+                          item.id_transaksi ??
+                          item.transaction_id ??
+                          index;
+
+                        const namaPembeli =
+                          item.nama_pembeli ??
+                          item.nama ??
+                          item.username ??
+                          "-";
+
+                        const namaProduk =
+                          item.nama_produk ??
+                          item.produk ??
+                          "-";
+
+                        const jumlah =
+                          item.jumlah ??
+                          item.quantity ??
+                          0;
+
+                        const totalHarga =
+                          item.total_harga ??
+                          item.total ??
+                          item.total_amount ??
+                          0;
+
+                        const metodePembayaran =
+                          item.metode_pembayaran ??
+                          item.payment_method ??
+                          "-";
+
+                        const status =
+                          item.status ??
+                          "-";
+
+                        const tanggal =
+                          item.created_at ??
+                          item.tanggal ??
+                          item.transaction_date ??
+                          item.updated_at;
+
+                        return (
+                          <tr key={id}>
+
+                            <td>
+                              {index + 1}
+                            </td>
+
+                            <td>
+                              {namaPembeli}
+                            </td>
+
+                            <td>
+                              {namaProduk}
+                            </td>
+
+                            <td>
+                              {jumlah}
+                            </td>
+
+                            <td>
+                              {formatRupiah(
+                                totalHarga
+                              )}
+                            </td>
+
+                            <td>
+                              {metodePembayaran}
+                            </td>
+
+                            <td>
+                              <span className="badge bg-secondary">
+                                {status}
+                              </span>
+                            </td>
+
+                            <td>
+                              {formatTanggal(
+                                tanggal
+                              )}
+                            </td>
+
+                          </tr>
+                        );
+                      }
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
     </div>
   );
 }
