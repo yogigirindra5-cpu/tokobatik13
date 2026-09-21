@@ -5,7 +5,7 @@
 const isDevelopment = import.meta.env.DEV;
 
 export const API_BASE_URL = isDevelopment
-  ? "http://localhost:5000/api"
+  ? "https://tokobatik13-khxf-beta.vercel.app/api"
   : "/api";
 
 // ===============================
