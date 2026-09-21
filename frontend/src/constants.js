@@ -1,36 +1,71 @@
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'https://tokobatik13.vercel.app';
+// src/contants.js
 
+// ===============================
+// API BACKEND
+// ===============================
+export const API_BASE_URL = 'https://tokobatik13.vercel.app';
+
+// ===============================
+// INFORMASI TOKO
+// ===============================
 export const SITE = {
   logo_toko: '',
   nama_toko: 'Girindra',
+
   tentang:
     'Batik tulis & cap asli buatan tangan pengrajin Pekalongan - kemeja, dress, kain, hingga aksesoris batik.',
+
   foto_banner: '',
+
   alamat_toko: 'JETIS-BEDOHO-SOOKO-PONOROGO',
+
   email_toko: 'halo@girindra.id',
+
   tlp_toko: 6281234567890,
+
   bank: 'BCA 1234567890 A.N. Girindra',
+
   jam_buka: 8,
   jam_tutup: 20,
+
   logo_wa: '',
   logo_ig: '',
   logo_fb: '',
+
   link_wa: 'https://wa.me/6281234567890',
   link_ig: 'https://instagram.com/grndraprt',
 };
 
+// ===============================
+// NAVIGASI PUBLIC
+// ===============================
 export const PUBLIC_NAV = [
-  { to: '/', label: 'Beranda', end: true },
-  { to: '/produk', label: 'Katalog' },
-  { to: '/artikel', label: 'Cerita Batik' },
+  {
+    to: '/',
+    label: 'Beranda',
+    end: true,
+  },
+  {
+    to: '/produk',
+    label: 'Katalog',
+  },
+  {
+    to: '/artikel',
+    label: 'Cerita Batik',
+  },
 ];
 
+// ===============================
+// JENIS KELAMIN
+// ===============================
 export const KELAMIN = [
   'Laki-laki',
   'Perempuan',
 ];
 
+// ===============================
+// KATEGORI PRODUK
+// ===============================
 export const KATEGORI_PRODUK = [
   'Kemeja Batik',
   'Dress Batik',
@@ -38,11 +73,17 @@ export const KATEGORI_PRODUK = [
   'Sarung Batik',
 ];
 
+// ===============================
+// METODE PEMBAYARAN
+// ===============================
 export const METODE_BAYAR = [
   'Bank Transfer',
   'E-Wallet',
 ];
 
+// ===============================
+// DETAIL PEMBAYARAN
+// ===============================
 export const PAYMENT_DETAILS = {
   'Bank Transfer': {
     provider: 'BCA',
@@ -57,8 +98,14 @@ export const PAYMENT_DETAILS = {
   },
 };
 
+// ===============================
+// SHIPPING
+// ===============================
 export const SHIPPING = [];
 
+// ===============================
+// STATUS PROSES TRANSAKSI
+// ===============================
 export const STATUS_PROSES = [
   'Tertunda',
   'Diproses',
@@ -67,6 +114,9 @@ export const STATUS_PROSES = [
   'Dibatalkan',
 ];
 
+// ===============================
+// STATUS PEMBAYARAN
+// ===============================
 export const STATUS_BAYAR = [
   'Belum',
   'Dibayar',
