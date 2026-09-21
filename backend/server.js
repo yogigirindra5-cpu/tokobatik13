@@ -36,7 +36,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-
+  "https://tokobatik13.vercel.app",
   "https://tokobatik13-khxf-beta.vercel.app",
 ];
 
