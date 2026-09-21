@@ -1,9 +1,11 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'https://tokobatik13.vercel.app';
 
 export const SITE = {
   logo_toko: '',
   nama_toko: 'Girindra',
-  tentang: 'Batik tulis & cap asli buatan tangan pengrajin Pekalongan - kemeja, dress, kain, hingga aksesoris batik.',
+  tentang:
+    'Batik tulis & cap asli buatan tangan pengrajin Pekalongan - kemeja, dress, kain, hingga aksesoris batik.',
   foto_banner: '',
   alamat_toko: 'JETIS-BEDOHO-SOOKO-PONOROGO',
   email_toko: 'halo@girindra.id',
@@ -24,7 +26,10 @@ export const PUBLIC_NAV = [
   { to: '/artikel', label: 'Cerita Batik' },
 ];
 
-export const KELAMIN = ['Laki-laki', 'Perempuan'];
+export const KELAMIN = [
+  'Laki-laki',
+  'Perempuan',
+];
 
 export const KATEGORI_PRODUK = [
   'Kemeja Batik',
@@ -33,7 +38,10 @@ export const KATEGORI_PRODUK = [
   'Sarung Batik',
 ];
 
-export const METODE_BAYAR = ['Bank Transfer', 'E-Wallet'];
+export const METODE_BAYAR = [
+  'Bank Transfer',
+  'E-Wallet',
+];
 
 export const PAYMENT_DETAILS = {
   'Bank Transfer': {
@@ -41,6 +49,7 @@ export const PAYMENT_DETAILS = {
     account: '1234567890',
     holder: 'Girindra',
   },
+
   'E-Wallet': {
     provider: 'GoPay / OVO / DANA',
     account: '6281234567890',
@@ -55,10 +64,10 @@ export const STATUS_PROSES = [
   'Diproses',
   'Dikirim',
   'Selesai',
-  'Dibatalkan'
+  'Dibatalkan',
 ];
 
 export const STATUS_BAYAR = [
   'Belum',
-  'Dibayar'
+  'Dibayar',
 ];
