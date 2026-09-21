@@ -2,8 +2,9 @@
 // Otomatis nambahin base URL, header Content-Type, dan token (kalau ada)
 
 import { getToken } from "../utils.js";
+import { API_BASE_URL } from "../contants.js";
 
-const BASE_URL = "http://localhost:5000"; // ganti sesuai port backend kamu
+const BASE_URL = API_BASE_URL;
 
 export async function apiRequest(endpoint, options = {}) {
   const token = getToken();
