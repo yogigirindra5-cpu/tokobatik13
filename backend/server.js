@@ -11,6 +11,10 @@ const { errorHandler, notFound } = require('./middlewares/errorHandler');
 
 const app = express();
 
+/* =========================
+   CORS
+========================= */
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -21,7 +25,8 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Request tanpa origin, misalnya Postman/Insomnia
+      // Izinkan request tanpa origin
+      // contoh: Postman / Insomnia
       if (!origin) {
         return callback(null, true);
       }
@@ -30,21 +35,50 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(new Error(`Origin tidak diizinkan oleh CORS: ${origin}`));
+      console.log('❌ CORS ditolak:', origin);
+
+      return callback(
+        new Error(`Origin tidak diizinkan oleh CORS: ${origin}`)
+      );
     },
+
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+
+    methods: [
+      'GET',
+      'POST',
+      'PUT',
+      'PATCH',
+      'DELETE',
+      'OPTIONS'
+    ],
+
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization'
+    ]
   })
 );
 
+/* =========================
+   MIDDLEWARE
+========================= */
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+/* =========================
+   UPLOADS
+========================= */
 
 app.use(
   '/uploads',
   express.static(path.join(__dirname, 'uploads'))
 );
+
+/* =========================
+   ROOT
+========================= */
 
 app.get('/', (req, res) => {
   res.json({
@@ -53,17 +87,33 @@ app.get('/', (req, res) => {
   });
 });
 
-// ROUTES
+/* =========================
+   API ROUTES
+========================= */
+
 app.use('/api/auth', authRoutes);
+
 app.use('/api/produk', produkRoutes);
+
 app.use('/api/transaksi', transaksiRoutes);
+
 app.use('/api/artikel', artikelRoutes);
 
-// 404
+/* =========================
+   404
+========================= */
+
 app.use(notFound);
 
-// ERROR HANDLER
+/* =========================
+   ERROR HANDLER
+========================= */
+
 app.use(errorHandler);
+
+/* =========================
+   SERVER
+========================= */
 
 const PORT = process.env.PORT || 5000;
 
