@@ -49,7 +49,7 @@ export default function DetailProduk() {
     setNotif("");
     window.scrollTo({ top: 0 });
 
-    fetch(`${API_BASE_URL}/api/produk/${id}`)
+    fetch(`${API_BASE_URL}/produk/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Produk tidak ditemukan");
         return res.json();
@@ -61,7 +61,7 @@ export default function DetailProduk() {
 
   useEffect(() => {
     if (!produk) return;
-    fetch(`${API_BASE_URL}/api/produk`)
+    fetch(`${API_BASE_URL}/produk`)
       .then((res) => res.json())
       .then((data) => {
         const lain = data.filter((p) => String(p.id_produk) !== String(produk.id_produk));

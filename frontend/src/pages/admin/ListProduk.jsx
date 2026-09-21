@@ -20,7 +20,7 @@ export default function ListProduk() {
 
   const muatProduk = () => {
     setStatus('loading');
-    fetch(`${API_BASE_URL}/api/produk`)
+    fetch(`${API_BASE_URL}/produk`)
       .then((res) => {
         if (!res.ok) throw new Error('Gagal memuat produk');
         return res.json();
@@ -82,8 +82,8 @@ export default function ListProduk() {
       if (gambar) formData.append('gambar', gambar);
 
       const url = editId
-        ? `${API_BASE_URL}/api/produk/${editId}`
-        : `${API_BASE_URL}/api/produk`;
+        ? `${API_BASE_URL}/produk/${editId}`
+        : `${API_BASE_URL}/produk`;
       const method = editId ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -106,7 +106,7 @@ export default function ListProduk() {
   const handleDelete = async (id) => {
     if (!confirm('Hapus produk ini?')) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/produk/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/produk/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}` },
       });

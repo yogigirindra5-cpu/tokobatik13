@@ -23,7 +23,7 @@ export default function ListProduk() {
   const [tampilan, setTampilan] = useState("grid");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/produk`)
+    fetch(`${API_BASE_URL}/produk`)
       .then((res) => res.json())
       .then(setProduk)
       .catch((err) => setError(err.message))

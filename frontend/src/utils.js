@@ -1,15 +1,10 @@
 import { API_BASE_URL } from "./constants.js";
 
-// Kumpulan helper yang dipakai di seluruh aplikasi:
-// - session (token & role) di localStorage
-// - format tampilan (rupiah, tanggal)
-// - url gambar & fallback saat gambar gagal dimuat
-// - wrapper fetch untuk endpoint yang butuh auth (dipakai di halaman admin)
+// ===== Session =====
 
 const TOKEN_KEY = "wastra_token";
 const ROLE_KEY = "wastra_role";
 
-// ===== Session =====
 export function saveSession(token, role) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(ROLE_KEY, role);
@@ -32,6 +27,7 @@ export function getRole() {
 
 export function formatRupiah(angka) {
   const num = Number(angka) || 0;
+
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -41,7 +37,9 @@ export function formatRupiah(angka) {
 
 export function formatTanggal(tanggal) {
   if (!tanggal) return "-";
+
   const d = new Date(tanggal);
+
   return d.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
@@ -52,12 +50,30 @@ export function formatTanggal(tanggal) {
 // ===== Gambar =====
 
 export function mediaUrl(namaFile) {
-  if (!namaFile) return "/placeholder.jpeg";
-  if (namaFile.startsWith("http")) return namaFile;
-  return `${API_BASE_URL}/uploads/${namaFile}`;
+  if (!namaFile) {
+    return "/placeholder.jpeg";
+  }
+
+  // Kalau database sudah menyimpan URL lengkap
+  if (
+    namaFile.startsWith("http://") ||
+    namaFile.startsWith("https://")
+  ) {
+    return namaFile;
+  }
+
+  // API_BASE_URL:
+  // http://localhost:5000/api
+  //
+  // Upload:
+  // http://localhost:5000/uploads
+  const serverUrl = API_BASE_URL.replace(/\/api$/, "");
+
+  const fileName = namaFile.replace(/^\/+/, "");
+
+  return `${serverUrl}/uploads/${fileName}`;
 }
 
-// Alias — dipakai di file-file yang menyebutnya getImageUrl, bukan mediaUrl
 export function getImageUrl(namaFile) {
   return mediaUrl(namaFile);
 }
@@ -67,20 +83,38 @@ export function onImgError(e) {
   e.target.src = "/placeholder.jpeg";
 }
 
-// ===== Fetch wrapper (dipakai di halaman admin: ListArtikel, ListUser, dll) =====
+// ===== Fetch wrapper =====
 
-// Otomatis: tambah prefix /api, sisipkan token, dan lempar error dengan bentuk { message, data }
 export async function apiFetch(endpoint, options = {}) {
   const token = getToken();
+
   const isFormData = options.body instanceof FormData;
 
   const headers = {
-    ...(isFormData ? {} : { "Content-Type": "application/json" }),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(isFormData
+      ? {}
+      : {
+          "Content-Type": "application/json",
+        }),
+
+    ...(token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {}),
+
     ...options.headers,
   };
 
-  const res = await fetch(`${API_BASE_URL}/api${endpoint}`, {
+  // API_BASE_URL sudah memiliki /api
+  //
+  // Contoh:
+  // apiFetch("/produk")
+  //
+  // menjadi:
+  // http://localhost:5000/api/produk
+
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
@@ -88,8 +122,12 @@ export async function apiFetch(endpoint, options = {}) {
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const err = new Error(data?.message || `Request gagal (${res.status})`);
+    const err = new Error(
+      data?.message || `Request gagal (${res.status})`
+    );
+
     err.data = data;
+
     throw err;
   }
 

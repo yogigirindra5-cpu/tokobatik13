@@ -1,29 +1,39 @@
-// Wrapper fetch dasar untuk semua request ke backend
-// Otomatis nambahin base URL, header Content-Type, dan token (kalau ada)
-
-import { getToken } from "../utils.js";
-import { API_BASE_URL } from "../contants.js";
-
-const BASE_URL = API_BASE_URL;
+import { API_BASE_URL } from "../constants.js";
 
 export async function apiRequest(endpoint, options = {}) {
-  const token = getToken();
+  const token = localStorage.getItem("token");
 
   const headers = {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
+    ...(options.headers || {}),
   };
 
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
 
-  const data = await res.json().catch(() => null);
+  const contentType = response.headers.get("content-type");
 
-  if (!res.ok) {
-    throw new Error(data?.message || `Request gagal (${res.status})`);
+  let data;
+
+  if (contentType && contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = await response.text();
+  }
+
+  if (!response.ok) {
+    const message =
+      typeof data === "string"
+        ? data
+        : data?.message || `HTTP Error ${response.status}`;
+
+    throw new Error(message);
   }
 
   return data;

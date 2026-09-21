@@ -20,7 +20,7 @@ export default function Keranjang() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
-    fetch(`${API_BASE_URL}/api/produk`)
+    fetch(`${API_BASE_URL}/produk`)
       .then((res) => res.json())
       .then((data) => {
         const idDiKeranjang = items.map((i) => String(i.id_produk));

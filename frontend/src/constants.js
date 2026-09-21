@@ -1,123 +1,135 @@
-// src/contants.js
-
 // ===============================
 // API BACKEND
 // ===============================
-export const API_BASE_URL = 'https://tokobatik13.vercel.app';
+
+const isDevelopment = import.meta.env.DEV;
+
+export const API_BASE_URL = isDevelopment
+  ? "http://localhost:5000/api"
+  : "/api";
 
 // ===============================
 // INFORMASI TOKO
 // ===============================
+
 export const SITE = {
-  logo_toko: '',
-  nama_toko: 'Girindra',
+  logo_toko: "",
+  nama_toko: "Girindra",
 
   tentang:
-    'Batik tulis & cap asli buatan tangan pengrajin Pekalongan - kemeja, dress, kain, hingga aksesoris batik.',
+    "Batik tulis & cap asli buatan tangan pengrajin Pekalongan - kemeja, dress, kain, hingga aksesoris batik.",
 
-  foto_banner: '',
+  foto_banner: "",
 
-  alamat_toko: 'JETIS-BEDOHO-SOOKO-PONOROGO',
+  alamat_toko: "JETIS-BEDOHO-SOOKO-PONOROGO",
 
-  email_toko: 'halo@girindra.id',
+  email_toko: "halo@girindra.id",
 
   tlp_toko: 6281234567890,
 
-  bank: 'BCA 1234567890 A.N. Girindra',
+  bank: "BCA 1234567890 A.N. Girindra",
 
   jam_buka: 8,
   jam_tutup: 20,
 
-  logo_wa: '',
-  logo_ig: '',
-  logo_fb: '',
+  logo_wa: "",
+  logo_ig: "",
+  logo_fb: "",
 
-  link_wa: 'https://wa.me/6281234567890',
-  link_ig: 'https://instagram.com/grndraprt',
+  link_wa: "https://wa.me/6281234567890",
+  link_ig: "https://instagram.com/grndraprt",
 };
 
 // ===============================
 // NAVIGASI PUBLIC
 // ===============================
+
 export const PUBLIC_NAV = [
   {
-    to: '/',
-    label: 'Beranda',
+    to: "/",
+    label: "Beranda",
     end: true,
   },
   {
-    to: '/produk',
-    label: 'Katalog',
+    to: "/produk",
+    label: "Katalog",
   },
   {
-    to: '/artikel',
-    label: 'Cerita Batik',
+    to: "/artikel",
+    label: "Cerita Batik",
   },
 ];
 
 // ===============================
 // JENIS KELAMIN
 // ===============================
+
 export const KELAMIN = [
-  'Laki-laki',
-  'Perempuan',
+  "Laki-laki",
+  "Perempuan",
 ];
 
 // ===============================
 // KATEGORI PRODUK
 // ===============================
+
 export const KATEGORI_PRODUK = [
-  'Kemeja Batik',
-  'Dress Batik',
-  'Kain Batik',
-  'Sarung Batik',
+  "Kemeja Batik",
+  "Dress Batik",
+  "Kain Batik",
+  "Sarung Batik",
 ];
 
 // ===============================
 // METODE PEMBAYARAN
 // ===============================
+
 export const METODE_BAYAR = [
-  'Bank Transfer',
-  'E-Wallet',
+  "Bank Transfer",
+  "E-Wallet",
 ];
 
 // ===============================
 // DETAIL PEMBAYARAN
 // ===============================
+
 export const PAYMENT_DETAILS = {
-  'Bank Transfer': {
-    provider: 'BCA',
-    account: '1234567890',
-    holder: 'Girindra',
+  "Bank Transfer": {
+    provider: "BCA",
+    account: "1234567890",
+    holder: "Girindra",
   },
 
-  'E-Wallet': {
-    provider: 'GoPay / OVO / DANA',
-    account: '6281234567890',
-    holder: 'Girindra',
+  "E-Wallet": {
+    provider: "GoPay / OVO / DANA",
+    account: "6281234567890",
+    holder: "Girindra",
   },
 };
 
 // ===============================
 // SHIPPING
 // ===============================
+
 export const SHIPPING = [];
 
 // ===============================
 // STATUS PROSES TRANSAKSI
 // ===============================
+
 export const STATUS_PROSES = [
-  'Tertunda',
-  'Diproses',
-  'Dikirim',
-  'Selesai',
-  'Dibatalkan',
+  "Tertunda",
+  "Diproses",
+  "Dikirim",
+  "Selesai",
+  "Dibatalkan",
 ];
 
 // ===============================
 // STATUS PEMBAYARAN
 // ===============================
+
 export const STATUS_BAYAR = [
-  'Belum',
-  'Dibayar',
+  "Belum",
+  "Dibayar",
 ];

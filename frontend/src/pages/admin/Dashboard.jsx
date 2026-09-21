@@ -42,10 +42,10 @@ export default function Dashboard() {
     const headers = { Authorization: `Bearer ${getToken()}` };
 
     Promise.all([
-      fetch(`${API_BASE_URL}/api/produk`).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/api/transaksi`, { headers }).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/api/auth/users`, { headers }).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/api/artikel`).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/produk`).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/transaksi`, { headers }).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/auth/users`, { headers }).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/artikel`).then((r) => r.json()),
     ])
       .then(([produk, transaksi, users, artikel]) => {
         const produkTerjual = transaksi

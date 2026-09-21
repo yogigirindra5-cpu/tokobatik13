@@ -10,13 +10,13 @@ export default function Home() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/produk`)
+    fetch(`${API_BASE_URL}/produk`)
       .then((res) => res.json())
       .then(setProduk)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
 
-    fetch(`${API_BASE_URL}/api/artikel`)
+    fetch(`${API_BASE_URL}/artikel`)
       .then((res) => res.json())
       .then(setArtikel)
       .catch(() => {});

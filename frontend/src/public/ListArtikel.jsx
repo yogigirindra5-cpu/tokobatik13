@@ -10,7 +10,7 @@ export default function ListArtikel() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/artikel`)
+    fetch(`${API_BASE_URL}/artikel`)
       .then((res) => {
         if (!res.ok) throw new Error("Gagal memuat artikel");
         return res.json();
