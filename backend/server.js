@@ -15,7 +15,6 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'https://tokobatik13.vercel.app',
-  'https://tokobatik13-git-dev-yogigirindra13.vercel.app'
 ];
 
 app.use(
