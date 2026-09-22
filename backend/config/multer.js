@@ -1,15 +1,16 @@
 const multer = require("multer");
 const path = require("path");
 
+// Vercel tidak menyediakan penyimpanan file lokal permanen.
+// Gunakan memoryStorage agar backend tidak mencoba membuat folder "uploads".
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|webp/;
 
-  const isValidExt = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
+  const ext = path.extname(file.originalname).toLowerCase();
 
+  const isValidExt = allowedTypes.test(ext);
   const isValidMime = allowedTypes.test(file.mimetype);
 
   if (isValidExt && isValidMime) {
@@ -24,8 +25,8 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-  storage,
-  fileFilter,
+  storage: storage,
+  fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024
   }
