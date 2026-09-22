@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-
 require("dotenv").config();
 
 // ======================================================
@@ -36,6 +35,9 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
+
+  // Vercel
+  "https://tokobatik09.vercel.app",
   "https://tokobatik13.vercel.app",
   "https://tokobatik13-khxf-beta.vercel.app",
 ];
@@ -43,12 +45,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Request tanpa origin
-      // misalnya Postman / Insomnia
+      // Request dari Postman, Insomnia, server-to-server, dll.
       if (!origin) {
         return callback(null, true);
       }
 
+      // Izinkan origin yang terdaftar
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -56,9 +58,7 @@ app.use(
       console.log("❌ CORS ditolak:", origin);
 
       return callback(
-        new Error(
-          `Origin tidak diizinkan: ${origin}`
-        )
+        new Error(`Origin tidak diizinkan: ${origin}`)
       );
     },
 
@@ -82,7 +82,6 @@ app.use(
 
 // ======================================================
 // BODY PARSER
-// WAJIB SEBELUM ROUTES
 // ======================================================
 
 app.use(express.json());
@@ -105,14 +104,13 @@ app.use(
 );
 
 // ======================================================
-// HOME
+// HOME / HEALTH CHECK
 // ======================================================
 
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message:
-      "API Toko Batik berjalan dengan baik 🚀",
+    message: "API Toko Batik berjalan dengan baik 🚀",
   });
 });
 
@@ -120,27 +118,15 @@ app.get("/", (req, res) => {
 // API ROUTES
 // ======================================================
 
-app.use(
-  "/api/auth",
-  authRoutes
-);
+app.use("/api/auth", authRoutes);
 
-app.use(
-  "/api/produk",
-  produkRoutes
-);
+app.use("/api/produk", produkRoutes);
 
 app.use("/api/kategori", kategoriRoutes);
 
-app.use(
-  "/api/transaksi",
-  transaksiRoutes
-);
+app.use("/api/transaksi", transaksiRoutes);
 
-app.use(
-  "/api/artikel",
-  artikelRoutes
-);
+app.use("/api/artikel", artikelRoutes);
 
 // ======================================================
 // 404
@@ -155,22 +141,23 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ======================================================
-// SERVER
+// LOCAL SERVER
 // ======================================================
 
-const PORT =
-  process.env.PORT || 5000;
+// Hanya menjalankan app.listen ketika dijalankan
+// secara langsung di localhost.
+// Saat di-import oleh Vercel, app.listen tidak dijalankan.
 
 if (require.main === module) {
-  app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
-      console.log(
-        `✅ Server berjalan di port ${PORT}`
-      );
-    }
-  );
+  const PORT = process.env.PORT || 5000;
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`✅ Server berjalan di port ${PORT}`);
+  });
 }
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = app;
